@@ -1,0 +1,45 @@
+name: Provision Pull Request
+
+on:
+  pull_request:
+
+env:
+  AWS_REGION: us-west-2
+  AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
+
+jobs:
+  provision:
+    name: Provision Pull Request
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: arn:aws:iam::746669194690:role/TerraformExecutionRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+
+      - name: Terraform Init
+        working-directory: infra/entry
+        run: |
+          terraform init \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="bucket=terraform-state-dev" \
+            -backend-config="key=pr-${{ github.event.number }}/state.tfstate"
+
+      - name: Terraform Apply
+        working-directory: infra/entry
+        run: terraform apply -auto-approve
+
