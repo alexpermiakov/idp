@@ -1,0 +1,68 @@
+name: Destroy PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to destroy resources for"
+        required: true
+        type: number
+  pull_request:
+    types: [closed]
+
+env:
+  AWS_REGION: us-west-2
+  AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
+
+jobs:
+  destroy:
+    name: Destroy PR
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      TF_VAR_region: "us-west-2"
+      TF_VAR_pr_number: ${{ inputs.pr_number || github.event.number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+          terraform_wrapper: false
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        id: oidc
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Terraform Init (Prepare for Destroy)
+        working-directory: infra/entry
+        run: |
+          terraform init \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="bucket=terraform-state-dev" \
+            -backend-config="key=pr-${{ inputs.pr_number || github.event.number }}/state.tfstate" \
+            -backend-config="use_lockfile=true"
+
+      - name: Terraform Destroy
+        working-directory: infra/entry
+        run: terraform destroy -auto-approve
+
+      - name: Delete Terraform State from S3
+        working-directory: infra/entry
+        run: |
+          PR_NUMBER=${{ inputs.pr_number || github.event.number }}
+          BUCKET="terraform-state-dev"
+          PREFIX="pr-$PR_NUMBER"
+
+          echo "Deleting Terraform state from S3: s3://$BUCKET/$PREFIX/"
+          aws s3 rm "s3://$BUCKET/$PREFIX/" --recursive
+          echo "Terraform state cleanup completed for PR $PR_NUMBER"
+
