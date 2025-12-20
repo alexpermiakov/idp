@@ -36,10 +36,10 @@ resource "aws_iam_role_policy_attachment" "ec2_container_registry_read_only" {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.3.1"
+  version = "21.10.1"
 
   name               = local.cluster_name
-  kubernetes_version = "1.33"
+  kubernetes_version = "1.34"
 
   vpc_id     = var.vpc_id
   subnet_ids = var.vpc_subnet_ids
