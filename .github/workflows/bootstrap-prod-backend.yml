@@ -34,7 +34,6 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-          role-session-name: GitHubActions-${{ github.run_id }}
 
       - name: Terraform Format
         run: terraform fmt -check
@@ -42,7 +41,7 @@ jobs:
       - name: Terraform Init, Validate, Plan, and Apply
         env:
           TF_VAR_region: ${{ env.AWS_REGION }}
-          TF_VAR_s3_bucket_name: "terraform-state-prod"
+          TF_VAR_s3_bucket_name: "terraform-state-alexidp-prod"
         run: |
           terraform init -reconfigure
           terraform validate
