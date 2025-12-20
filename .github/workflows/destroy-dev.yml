@@ -47,7 +47,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="bucket=terraform-state-dev" \
+            -backend-config="bucket=terraform-state-alexidp-dev" \
             -backend-config="key=pr-${{ inputs.pr_number || github.event.number }}/state.tfstate" \
             -backend-config="use_lockfile=true"
 
@@ -59,7 +59,7 @@ jobs:
         working-directory: infra/entry
         run: |
           PR_NUMBER=${{ inputs.pr_number || github.event.number }}
-          BUCKET="terraform-state-dev"
+          BUCKET="terraform-state-alexidp-dev"
           PREFIX="pr-$PR_NUMBER"
 
           echo "Deleting Terraform state from S3: s3://$BUCKET/$PREFIX/"
