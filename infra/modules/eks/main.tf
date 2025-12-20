@@ -75,7 +75,6 @@ module "eks" {
   }
 }
 
-
 data "aws_eks_cluster_auth" "this" {
   name = module.eks.cluster_name
 }
@@ -92,7 +91,7 @@ resource "aws_eks_access_entry" "org_role" {
 
 resource "aws_eks_access_entry" "additional_admins" {
   cluster_name      = module.eks.cluster_name
-  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
+  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
   type              = "STANDARD"
   kubernetes_groups = ["eks-admins"]
 }
