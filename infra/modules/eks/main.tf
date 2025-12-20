@@ -36,10 +36,10 @@ resource "aws_iam_role_policy_attachment" "ec2_container_registry_read_only" {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.3.1"
+  version = "21.10.1"
 
   name               = local.cluster_name
-  kubernetes_version = "1.33"
+  kubernetes_version = "1.34"
 
   vpc_id     = var.vpc_id
   subnet_ids = var.vpc_subnet_ids
@@ -75,7 +75,6 @@ module "eks" {
   }
 }
 
-
 data "aws_eks_cluster_auth" "this" {
   name = module.eks.cluster_name
 }
@@ -90,10 +89,18 @@ resource "aws_eks_access_entry" "org_role" {
   kubernetes_groups = ["eks-admins"]
 }
 
+resource "aws_eks_access_entry" "additional_admins" {
+  cluster_name      = module.eks.cluster_name
+  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
+  type              = "STANDARD"
+  kubernetes_groups = ["eks-admins"]
+}
+
 resource "time_sleep" "wait_for_access_propagation" {
   depends_on = [
     module.eks,
-    aws_eks_access_entry.org_role
+    aws_eks_access_entry.org_role,
+    aws_eks_access_entry.additional_admins
   ]
 
   create_duration = "30s"

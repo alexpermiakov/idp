@@ -6,6 +6,7 @@ on:
 env:
   AWS_REGION: us-west-2
   AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
+  TF_VAR_pr_number: ${{ github.event.number }}
 
 jobs:
   provision:
@@ -23,8 +24,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v5.1.1
         with:
-          role-to-assume: arn:aws:iam::746669194690:role/TerraformExecutionRole
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -36,7 +38,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="bucket=terraform-state-dev" \
+            -backend-config="bucket=terraform-state-alexidp-dev" \
             -backend-config="key=pr-${{ github.event.number }}/state.tfstate"
 
       - name: Terraform Apply
