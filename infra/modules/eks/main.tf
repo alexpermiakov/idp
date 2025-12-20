@@ -90,10 +90,18 @@ resource "aws_eks_access_entry" "org_role" {
   kubernetes_groups = ["eks-admins"]
 }
 
+resource "aws_eks_access_entry" "additional_admins" {
+  cluster_name      = module.eks.cluster_name
+  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
+  type              = "STANDARD"
+  kubernetes_groups = ["eks-admins"]
+}
+
 resource "time_sleep" "wait_for_access_propagation" {
   depends_on = [
     module.eks,
-    aws_eks_access_entry.org_role
+    aws_eks_access_entry.org_role,
+    aws_eks_access_entry.additional_admins
   ]
 
   create_duration = "30s"
