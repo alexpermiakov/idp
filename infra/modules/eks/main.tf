@@ -81,32 +81,25 @@ data "aws_eks_cluster_auth" "this" {
 
 data "aws_caller_identity" "current" {}
 
-# maps IAM roles to Kubernetes eks-admins group
-resource "aws_eks_access_entry" "org_role" {
+resource "aws_eks_access_entry" "admin_roles" {
+  for_each = toset(var.admin_role_arns)
+
   cluster_name      = module.eks.cluster_name
-  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/OrganizationAccountAccessRole"
+  principal_arn     = each.value
   type              = "STANDARD"
   kubernetes_groups = ["eks-admins"]
 }
 
-resource "aws_eks_access_entry" "additional_admins" {
-  cluster_name      = module.eks.cluster_name
-  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
-  type              = "STANDARD"
-  kubernetes_groups = ["eks-admins"]
-}
-
-resource "time_sleep" "wait_for_access_propagation" {
+resource "time_sleep" "wait_for_cluster_ready" {
   depends_on = [
     module.eks,
-    aws_eks_access_entry.org_role,
-    aws_eks_access_entry.additional_admins
+    aws_eks_access_entry.admin_roles,
   ]
 
   create_duration = "30s"
 }
 
-resource "kubernetes_cluster_role" "eks_admins" {
+resource "kubernetes_cluster_role_v1" "eks_admins" {
   metadata {
     name = "eks-admins-clusterrole"
   }
@@ -128,10 +121,10 @@ resource "kubernetes_cluster_role" "eks_admins" {
     verbs      = ["get", "list", "watch"]
   }
 
-  depends_on = [time_sleep.wait_for_access_propagation]
+  depends_on = [time_sleep.wait_for_cluster_ready]
 }
 
-resource "kubernetes_cluster_role_binding" "eks_admins" {
+resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
   metadata {
     name = "eks-admins-clusterrolebinding"
   }
@@ -144,9 +137,9 @@ resource "kubernetes_cluster_role_binding" "eks_admins" {
 
   role_ref {
     kind      = "ClusterRole"
-    name      = kubernetes_cluster_role.eks_admins.metadata[0].name
+    name      = kubernetes_cluster_role_v1.eks_admins.metadata[0].name
     api_group = "rbac.authorization.k8s.io"
   }
 
-  depends_on = [time_sleep.wait_for_access_propagation]
+  depends_on = [time_sleep.wait_for_cluster_ready]
 }

@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 3.0.1"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 3.1.1"
+    }
   }
 
   backend "s3" {}
@@ -30,12 +34,27 @@ module "eks" {
   source    = "../modules/eks"
   pr_number = var.pr_number
 
-  vpc_id         = module.vpc.vpc_id
-  vpc_subnet_ids = module.vpc.private_subnet_ids
+  vpc_id          = module.vpc.vpc_id
+  vpc_subnet_ids  = module.vpc.private_subnet_ids
+  admin_role_arns = var.admin_role_arns
 }
 
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   token                  = module.eks.cluster_token
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = module.eks.cluster_token
+  }
+}
+
+module "argocd" {
+  source       = "../modules/argocd"
+  cluster_name = module.eks.cluster_name
+  depends_on   = [module.eks]
 }
