@@ -54,9 +54,12 @@ kubectl get nodes
 # Update kubeconfig if not already done
 aws eks update-kubeconfig --name k8s-pr-0 --region us-west-2
 
-# Get the admin password
+# Get the admin password (Option 1: via Terraform output)
 cd infra/entry
 terraform output -raw argocd_server_admin_password
+
+# Get the admin password (Option 2: via kubectl - works after CI/CD deploys too)
+kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d
 
 # Port-forward to ArgoCD server
 kubectl port-forward svc/argocd-server -n argocd 8080:80
