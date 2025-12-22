@@ -34,8 +34,9 @@ module "eks" {
   source    = "../modules/eks"
   pr_number = var.pr_number
 
-  vpc_id         = module.vpc.vpc_id
-  vpc_subnet_ids = module.vpc.private_subnet_ids
+  vpc_id          = module.vpc.vpc_id
+  vpc_subnet_ids  = module.vpc.private_subnet_ids
+  admin_role_arns = var.admin_role_arns
 }
 
 provider "kubernetes" {
