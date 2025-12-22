@@ -89,24 +89,25 @@ resource "aws_eks_access_entry" "org_role" {
   kubernetes_groups = ["eks-admins"]
 }
 
-resource "aws_eks_access_entry" "additional_admins" {
-  cluster_name      = module.eks.cluster_name
-  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
-  type              = "STANDARD"
-  kubernetes_groups = ["eks-admins"]
-}
+# Commented out: Access entry already exists (likely auto-created by EKS)
+# resource "aws_eks_access_entry" "additional_admins" {
+#   cluster_name      = module.eks.cluster_name
+#   principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
+#   type              = "STANDARD"
+#   kubernetes_groups = ["eks-admins"]
+# }
 
 resource "time_sleep" "wait_for_access_propagation" {
   depends_on = [
     module.eks,
     aws_eks_access_entry.org_role,
-    aws_eks_access_entry.additional_admins
+    # aws_eks_access_entry.additional_admins
   ]
 
   create_duration = "30s"
 }
 
-resource "kubernetes_cluster_role" "eks_admins" {
+resource "kubernetes_cluster_role_v1" "eks_admins" {
   metadata {
     name = "eks-admins-clusterrole"
   }
@@ -131,7 +132,7 @@ resource "kubernetes_cluster_role" "eks_admins" {
   depends_on = [time_sleep.wait_for_access_propagation]
 }
 
-resource "kubernetes_cluster_role_binding" "eks_admins" {
+resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
   metadata {
     name = "eks-admins-clusterrolebinding"
   }
@@ -144,7 +145,7 @@ resource "kubernetes_cluster_role_binding" "eks_admins" {
 
   role_ref {
     kind      = "ClusterRole"
-    name      = kubernetes_cluster_role.eks_admins.metadata[0].name
+    name      = kubernetes_cluster_role_v1.eks_admins.metadata[0].name
     api_group = "rbac.authorization.k8s.io"
   }
 

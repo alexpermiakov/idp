@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 3.0.1"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 3.1.1"
+    }
   }
 
   backend "s3" {}
@@ -38,4 +42,18 @@ provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   token                  = module.eks.cluster_token
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = module.eks.cluster_token
+  }
+}
+
+module "argocd" {
+  source       = "../modules/argocd"
+  cluster_name = module.eks.cluster_name
+  depends_on   = [module.eks]
 }
