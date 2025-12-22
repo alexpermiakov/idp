@@ -89,19 +89,20 @@ resource "aws_eks_access_entry" "org_role" {
   kubernetes_groups = ["eks-admins"]
 }
 
-# Commented out: Access entry already exists (likely auto-created by EKS)
-# resource "aws_eks_access_entry" "additional_admins" {
-#   cluster_name      = module.eks.cluster_name
-#   principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"
-#   type              = "STANDARD"
-#   kubernetes_groups = ["eks-admins"]
-# }
+# CI/CD role access (e.g., GitHub Actions OIDC role)
+resource "aws_eks_access_entry" "cicd_role" {
+  count             = var.cicd_role_arn != "" ? 1 : 0
+  cluster_name      = module.eks.cluster_name
+  principal_arn     = var.cicd_role_arn
+  type              = "STANDARD"
+  kubernetes_groups = ["eks-admins"]
+}
 
 resource "time_sleep" "wait_for_access_propagation" {
   depends_on = [
     module.eks,
     aws_eks_access_entry.org_role,
-    # aws_eks_access_entry.additional_admins
+    aws_eks_access_entry.cicd_role,
   ]
 
   create_duration = "30s"
