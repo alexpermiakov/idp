@@ -81,11 +81,20 @@ data "aws_eks_cluster_auth" "this" {
 
 data "aws_caller_identity" "current" {}
 
-# Note: Access entries not needed because enable_cluster_creator_admin_permissions = true
-# grants automatic admin access to whoever creates the cluster (SSO user locally, GitHub Actions in CI/CD)
+resource "aws_eks_access_entry" "admin_roles" {
+  for_each = toset(var.admin_role_arns)
+
+  cluster_name      = module.eks.cluster_name
+  principal_arn     = each.value
+  type              = "STANDARD"
+  kubernetes_groups = ["eks-admins"]
+}
 
 resource "time_sleep" "wait_for_cluster_ready" {
-  depends_on = [module.eks]
+  depends_on = [
+    module.eks,
+    aws_eks_access_entry.admin_roles,
+  ]
 
   create_duration = "30s"
 }
