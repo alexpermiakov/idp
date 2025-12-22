@@ -36,7 +36,6 @@ module "eks" {
 
   vpc_id         = module.vpc.vpc_id
   vpc_subnet_ids = module.vpc.private_subnet_ids
-  cicd_role_arn  = "arn:aws:iam::935743309409:role/GitHubActionsRole"
 }
 
 provider "kubernetes" {

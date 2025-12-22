@@ -81,29 +81,11 @@ data "aws_eks_cluster_auth" "this" {
 
 data "aws_caller_identity" "current" {}
 
-# maps IAM roles to Kubernetes eks-admins group
-resource "aws_eks_access_entry" "org_role" {
-  cluster_name      = module.eks.cluster_name
-  principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/OrganizationAccountAccessRole"
-  type              = "STANDARD"
-  kubernetes_groups = ["eks-admins"]
-}
+# Note: Access entries not needed because enable_cluster_creator_admin_permissions = true
+# grants automatic admin access to whoever creates the cluster (SSO user locally, GitHub Actions in CI/CD)
 
-# CI/CD role access (e.g., GitHub Actions OIDC role)
-resource "aws_eks_access_entry" "cicd_role" {
-  count             = var.cicd_role_arn != "" ? 1 : 0
-  cluster_name      = module.eks.cluster_name
-  principal_arn     = var.cicd_role_arn
-  type              = "STANDARD"
-  kubernetes_groups = ["eks-admins"]
-}
-
-resource "time_sleep" "wait_for_access_propagation" {
-  depends_on = [
-    module.eks,
-    aws_eks_access_entry.org_role,
-    aws_eks_access_entry.cicd_role,
-  ]
+resource "time_sleep" "wait_for_cluster_ready" {
+  depends_on = [module.eks]
 
   create_duration = "30s"
 }
@@ -130,7 +112,7 @@ resource "kubernetes_cluster_role_v1" "eks_admins" {
     verbs      = ["get", "list", "watch"]
   }
 
-  depends_on = [time_sleep.wait_for_access_propagation]
+  depends_on = [time_sleep.wait_for_cluster_ready]
 }
 
 resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
@@ -150,5 +132,5 @@ resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
     api_group = "rbac.authorization.k8s.io"
   }
 
-  depends_on = [time_sleep.wait_for_access_propagation]
+  depends_on = [time_sleep.wait_for_cluster_ready]
 }
