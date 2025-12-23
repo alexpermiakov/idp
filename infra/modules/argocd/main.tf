@@ -40,8 +40,15 @@ data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
   depends_on = [helm_release.argocd]
 }
 
-resource "kubernetes_manifest" "app_of_apps" {
-  manifest = yamldecode(file("${path.root}/../../argocd/applicationset.yaml"))
+# Apply the app-of-apps pattern to bootstrap ArgoCD applications
+resource "null_resource" "app_of_apps" {
+  provisioner "local-exec" {
+    command = "kubectl apply -f ${path.root}/../../argocd/applicationset.yaml"
+  }
 
   depends_on = [helm_release.argocd]
+
+  triggers = {
+    manifest_sha = filesha256("${path.root}/../../argocd/applicationset.yaml")
+  }
 }
