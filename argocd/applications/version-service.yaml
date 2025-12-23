@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: version-service
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/alexpermiakov/idp
+    targetRevision: main
+    path: helm-charts/standard-service # Platform's golden chart
+    helm:
+      releaseName: version-service
+      values: |
+        app:
+          name: version-service
+          image: your-registry/version-service:v1.0.0
+          port: 8080
+
+        resourceProfile: small  # small, medium, or large
+
+        replicaCount: 2
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: version-service
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
