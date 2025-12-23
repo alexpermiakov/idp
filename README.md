@@ -41,8 +41,19 @@ terraform apply -auto-approve -var="pr_number=0"
 After deployment:
 
 ```bash
-# Update kubeconfig
-aws eks update-kubeconfig --name k8s-pr-0 --region us-west-2
+# Get AWS credentials from SSO portal
+# 1. Visit https://d-9267ef45c3.awsapps.com/start
+# 2. Click "Access keys" and copy the credentials
+# 3. Paste them into ~/.aws/credentials under the profile [935743309409_AdministratorAccess]
+
+# Set AWS profile
+export AWS_PROFILE=935743309409_AdministratorAccess
+
+# Verify AWS access
+aws sts get-caller-identity
+
+# Update kubeconfig (replace <PR> with your PR number, or use 0 for local)
+aws eks update-kubeconfig --region us-west-2 --name k8s-pr-<PR>
 
 # Verify connection
 kubectl get nodes
@@ -51,8 +62,8 @@ kubectl get nodes
 ### Access ArgoCD Dashboard
 
 ```bash
-# Update kubeconfig if not already done
-aws eks update-kubeconfig --name k8s-pr-0 --region us-west-2
+# Update kubeconfig if not already done (replace <PR> with your PR number, or use 0 for local)
+aws eks update-kubeconfig --region us-west-2 --name k8s-pr-<PR>
 
 # Get the admin password (Option 1: via Terraform output)
 cd infra/entry
