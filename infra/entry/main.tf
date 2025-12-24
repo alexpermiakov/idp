@@ -53,10 +53,30 @@ provider "helm" {
   }
 }
 
+# GitHub App credentials for ArgoCD Image Updater (optional)
+# If not present in SSM, Image Updater will still run but won't write back to Git
+data "aws_ssm_parameter" "github_app_id" {
+  name = "/idp/github-app-id"
+}
+
+data "aws_ssm_parameter" "github_app_installation_id" {
+  name = "/idp/github-app-installation-id"
+}
+
+data "aws_ssm_parameter" "github_app_private_key" {
+  name            = "/idp/github-app-private-key"
+  with_decryption = true
+}
+
 module "argocd" {
   source       = "../modules/argocd"
   cluster_name = module.eks.cluster_name
-  depends_on   = [module.eks]
+
+  github_app_id              = try(data.aws_ssm_parameter.github_app_id.value, "")
+  github_app_installation_id = try(data.aws_ssm_parameter.github_app_installation_id.value, "")
+  github_app_private_key     = try(data.aws_ssm_parameter.github_app_private_key.value, "")
+
+  depends_on = [module.eks]
 }
 
 module "ecr_pod_identity" {

@@ -30,6 +30,80 @@ resource "helm_release" "argocd" {
   depends_on = [kubernetes_namespace_v1.argocd]
 }
 
+resource "helm_release" "argocd_image_updater" {
+  name       = "argocd-image-updater"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argocd-image-updater"
+  version    = "0.11.0"
+  namespace  = kubernetes_namespace_v1.argocd.metadata[0].name
+
+  set = [
+    {
+      name  = "config.registries[0].name"
+      value = "ECR"
+    },
+    {
+      name  = "config.registries[0].api_url"
+      value = "https://864992049050.dkr.ecr.us-east-1.amazonaws.com"
+    },
+    {
+      name  = "config.registries[0].prefix"
+      value = "864992049050.dkr.ecr.us-east-1.amazonaws.com"
+    },
+    {
+      name  = "config.registries[0].ping"
+      value = "no"
+    },
+    {
+      name  = "config.argocd.grpcWeb"
+      value = "true"
+    },
+    {
+      name  = "config.argocd.insecure"
+      value = "true"
+    },
+    {
+      name  = "config.argocd.plaintext"
+      value = "true"
+    },
+    {
+      name  = "config.gitCommitUser"
+      value = "argocd-image-updater[bot]"
+    },
+    {
+      name  = "config.gitCommitMail"
+      value = "argocd-image-updater[bot]@users.noreply.github.com"
+    }
+  ]
+
+  depends_on = [
+    helm_release.argocd,
+    kubernetes_secret_v1.github_app_credentials
+  ]
+}
+
+resource "kubernetes_secret_v1" "github_app_credentials" {
+  count = var.github_app_id != "" ? 1 : 0
+
+  metadata {
+    name      = "github-app-credentials"
+    namespace = kubernetes_namespace_v1.argocd.metadata[0].name
+    labels = {
+      "argocd.argoproj.io/secret-type" = "repository"
+    }
+  }
+
+  data = {
+    type                    = "git"
+    url                     = "https://github.com/alexpermiakov/idp"
+    githubAppID             = var.github_app_id
+    githubAppInstallationID = var.github_app_installation_id
+    githubAppPrivateKey     = var.github_app_private_key
+  }
+
+  depends_on = [helm_release.argocd]
+}
+
 # Get the initial admin password
 data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
   metadata {

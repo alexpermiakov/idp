@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: time-service-prod
+  namespace: argocd
+  # Production: NO Image Updater - manual promotion only via Git PR
+spec:
+  project: default
+
+  sources:
+    - repoURL: https://github.com/alexpermiakov/idp
+      targetRevision: main
+      path: helm-charts/standard-service
+      helm:
+        releaseName: time-service
+        values: |
+          app:
+            name: time-service
+            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/localtime:v1.0.0
+            port: 1599
+          resourceProfile: large
+          replicaCount: 3
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: time-service-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+

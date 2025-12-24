@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: version-service-dev
+  namespace: argocd
+  annotations:
+    # Dev environment: Always use latest sha- tagged images
+    argocd-image-updater.argoproj.io/image-list: version-service=864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/gitinfo
+    argocd-image-updater.argoproj.io/version-service.update-strategy: latest
+    argocd-image-updater.argoproj.io/version-service.allow-tags: regexp:^sha-.*
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
+    argocd-image-updater.argoproj.io/git-branch: main
+spec:
+  project: default
+
+  sources:
+    - repoURL: https://github.com/alexpermiakov/idp
+      targetRevision: main
+      path: helm-charts/standard-service
+      helm:
+        releaseName: version-service
+        values: |
+          app:
+            name: version-service
+            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/gitinfo:sha-437d203
+            port: 8080
+          resourceProfile: small
+          replicaCount: 1
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: version-service-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
