@@ -99,31 +99,6 @@ resource "time_sleep" "wait_for_cluster_ready" {
   create_duration = "30s"
 }
 
-resource "kubernetes_cluster_role_v1" "eks_admins" {
-  metadata {
-    name = "eks-admins-clusterrole"
-  }
-
-  rule {
-    api_groups = [""]
-    resources  = ["nodes", "namespaces", "persistentvolumes", "pods", "services"]
-    verbs      = ["get", "list", "watch"]
-  }
-  rule {
-    api_groups = ["metrics.k8s.io"]
-    resources  = ["nodes", "pods"]
-    verbs      = ["get", "list", "watch"]
-  }
-
-  rule {
-    api_groups = ["", "apps", "batch", "extensions"]
-    resources  = ["*"]
-    verbs      = ["get", "list", "watch"]
-  }
-
-  depends_on = [time_sleep.wait_for_cluster_ready]
-}
-
 resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
   metadata {
     name = "eks-admins-clusterrolebinding"
@@ -137,7 +112,7 @@ resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
 
   role_ref {
     kind      = "ClusterRole"
-    name      = kubernetes_cluster_role_v1.eks_admins.metadata[0].name
+    name      = "cluster-admin" # Use built-in cluster-admin role for full access
     api_group = "rbac.authorization.k8s.io"
   }
 

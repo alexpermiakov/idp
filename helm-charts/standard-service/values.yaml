@@ -1,0 +1,95 @@
+# This is the platform team's golden configuration
+
+app:
+  name: "" # Must be provided by application
+  image: "" # Must be provided by application
+  port: 8080
+
+serviceAccount:
+  create: true # Whether to create a service account
+
+imagePullSecrets: [] # Optional: list of secret names for private registries
+
+resourceProfile: small # small, medium, large
+
+resourceProfiles:
+  small:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  medium:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  large:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts: []
+  tls: []
+
+healthCheck:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+monitoring:
+  enabled: true
+  prometheus:
+    scrape: true
+    port: 8080
+    path: /metrics
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+highAvailability:
+  enabled: true
+  spreadAcrossNodes: true
+
+nodeSelector: {}
+tolerations: []
+

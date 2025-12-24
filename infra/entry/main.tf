@@ -58,3 +58,10 @@ module "argocd" {
   cluster_name = module.eks.cluster_name
   depends_on   = [module.eks]
 }
+
+module "ecr_pod_identity" {
+  source         = "../modules/ecr-pod-identity"
+  cluster_name   = module.eks.cluster_name
+  ecr_account_id = "864992049050"
+  depends_on     = [module.eks]
+}
