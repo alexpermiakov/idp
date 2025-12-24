@@ -2,6 +2,10 @@ resource "kubernetes_namespace_v1" "argocd" {
   metadata {
     name = "argocd"
   }
+
+  timeouts {
+    delete = "15m"
+  }
 }
 
 resource "helm_release" "argocd" {
@@ -128,4 +132,56 @@ resource "null_resource" "app_of_apps" {
   triggers = {
     manifest_sha = filesha256("${path.root}/../../argocd/applicationset.yaml")
   }
+}
+
+# Cleanup ArgoCD applications and CRDs on destroy
+resource "null_resource" "argocd_cleanup" {
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      set +e  # Don't fail if resources don't exist
+      
+      # Update kubeconfig
+      aws eks update-kubeconfig --name ${self.triggers.cluster_name} --region us-west-2 || true
+      
+      # Remove finalizers from all ArgoCD applications
+      kubectl get applications.argoproj.io -A -o json 2>/dev/null | \
+        jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | \
+        while read namespace name; do
+          kubectl patch application "$name" -n "$namespace" -p '{"metadata":{"finalizers":null}}' --type=merge 2>/dev/null || true
+        done
+      
+      # Remove finalizers from all ApplicationSets
+      kubectl get applicationsets.argoproj.io -A -o json 2>/dev/null | \
+        jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | \
+        while read namespace name; do
+          kubectl patch applicationset "$name" -n "$namespace" -p '{"metadata":{"finalizers":null}}' --type=merge 2>/dev/null || true
+        done
+      
+      # Delete all ArgoCD applications
+      kubectl delete applications.argoproj.io --all -A --timeout=2m 2>/dev/null || true
+      kubectl delete applicationsets.argoproj.io --all -A --timeout=2m 2>/dev/null || true
+      
+      # Wait a bit for resources to clean up
+      sleep 5
+      
+      # Delete CRDs after helm releases are gone
+      kubectl delete crd applications.argoproj.io 2>/dev/null || true
+      kubectl delete crd applicationsets.argoproj.io 2>/dev/null || true
+      kubectl delete crd appprojects.argoproj.io 2>/dev/null || true
+      kubectl delete crd imageupdaters.argocd-image-updater.argoproj.io 2>/dev/null || true
+      
+      echo "ArgoCD cleanup completed"
+    EOT
+  }
+
+  triggers = {
+    cluster_name = var.cluster_name
+  }
+
+  depends_on = [
+    null_resource.app_of_apps,
+    helm_release.argocd_image_updater,
+    helm_release.argocd
+  ]
 }
