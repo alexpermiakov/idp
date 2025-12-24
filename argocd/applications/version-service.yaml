@@ -17,9 +17,7 @@ spec:
           name: version-service
           image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/gitinfo:sha-437d203
           port: 8080
-
         resourceProfile: small  # small, medium, or large
-
         replicaCount: 2
 
   destination:

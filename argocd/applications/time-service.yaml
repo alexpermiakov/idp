@@ -17,9 +17,7 @@ spec:
           name: time-service
           image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/localtime:sha-714f35e
           port: 1599
-
         resourceProfile: medium  # small, medium, or large
-
         replicaCount: 3
 
   destination:
