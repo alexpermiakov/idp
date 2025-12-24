@@ -52,7 +52,7 @@ resource "helm_release" "argocd_image_updater" {
     },
     {
       name  = "config.registries[0].ping"
-      value = "no"
+      value = "false"
     },
     {
       name  = "config.argocd.grpcWeb"
