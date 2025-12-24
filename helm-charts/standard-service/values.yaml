@@ -5,6 +5,11 @@ app:
   image: "" # Must be provided by application
   port: 8080
 
+serviceAccount:
+  create: true # Whether to create a service account
+
+imagePullSecrets: [] # Optional: list of secret names for private registries
+
 resourceProfile: small # small, medium, large
 
 resourceProfiles:
