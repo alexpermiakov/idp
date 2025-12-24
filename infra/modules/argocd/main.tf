@@ -118,19 +118,19 @@ data "kubernetes_secret_v1" "argocd_initial_admin_secret" {
   depends_on = [helm_release.argocd]
 }
 
-# Apply the app-of-apps pattern to bootstrap ArgoCD applications
+# Apply the bootstrap application for this environment
 resource "null_resource" "app_of_apps" {
   provisioner "local-exec" {
     command = <<-EOT
       aws eks update-kubeconfig --name ${var.cluster_name} --region us-west-2
-      kubectl apply -f ${path.root}/../../argocd/applicationset.yaml
+      kubectl apply -f ${path.root}/../../argocd/bootstrap-dev.yaml
     EOT
   }
 
   depends_on = [helm_release.argocd]
 
   triggers = {
-    manifest_sha = filesha256("${path.root}/../../argocd/applicationset.yaml")
+    manifest_sha = filesha256("${path.root}/../../argocd/bootstrap-dev.yaml")
   }
 }
 
