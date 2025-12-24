@@ -105,9 +105,8 @@ resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
   }
 
   subject {
-    kind      = "Group"
-    name      = "eks-admins"
-    api_group = "rbac.authorization.k8s.io"
+    kind = "Group"
+    name = "eks-admins"
   }
 
   role_ref {

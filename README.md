@@ -73,7 +73,7 @@ terraform output -raw argocd_server_admin_password
 kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 -d
 
 # Port-forward to ArgoCD server
-kubectl port-forward svc/argocd-server -n argocd 8080:80
+kubectl port-forward svc/argocd-server -n argocd 8080:80 &
 ```
 
 Access at http://localhost:8080 and login with username `admin` and the password from above.
