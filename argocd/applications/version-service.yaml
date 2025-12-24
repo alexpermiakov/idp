@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/alexpermiakov/git-info-go-server
     targetRevision: main
-    path: helm-charts/standard-service # Platform's golden chart
+    path: helm-charts/standard-service
     helm:
       releaseName: version-service
       values: |
