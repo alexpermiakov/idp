@@ -100,8 +100,8 @@ resource "kubernetes_secret_v1" "github_app_credentials" {
   data = {
     type                    = "git"
     url                     = "https://github.com/alexpermiakov/idp"
-    githubAppID             = var.github_app_id
-    githubAppInstallationID = var.github_app_installation_id
+    githubAppId             = var.github_app_id
+    githubAppInstallationId = var.github_app_installation_id
     githubAppPrivateKey     = var.github_app_private_key
   }
 
