@@ -59,18 +59,48 @@ resource "aws_iam_role_policy_attachment" "ecr_pull" {
   policy_arn = aws_iam_policy.ecr_pull.arn
 }
 
-# Pod Identity Association for version-service
-resource "aws_eks_pod_identity_association" "version_service" {
+# Pod Identity Associations for all environments
+
+# version-service
+resource "aws_eks_pod_identity_association" "version_service_dev" {
   cluster_name    = local.cluster_name
-  namespace       = "version-service"
+  namespace       = "version-service-dev"
   service_account = "version-service"
   role_arn        = aws_iam_role.ecr_pull.arn
 }
 
-# Pod Identity Association for time-service
-resource "aws_eks_pod_identity_association" "time_service" {
+resource "aws_eks_pod_identity_association" "version_service_staging" {
   cluster_name    = local.cluster_name
-  namespace       = "time-service"
+  namespace       = "version-service-staging"
+  service_account = "version-service"
+  role_arn        = aws_iam_role.ecr_pull.arn
+}
+
+resource "aws_eks_pod_identity_association" "version_service_prod" {
+  cluster_name    = local.cluster_name
+  namespace       = "version-service-prod"
+  service_account = "version-service"
+  role_arn        = aws_iam_role.ecr_pull.arn
+}
+
+# time-service
+resource "aws_eks_pod_identity_association" "time_service_dev" {
+  cluster_name    = local.cluster_name
+  namespace       = "time-service-dev"
+  service_account = "time-service"
+  role_arn        = aws_iam_role.ecr_pull.arn
+}
+
+resource "aws_eks_pod_identity_association" "time_service_staging" {
+  cluster_name    = local.cluster_name
+  namespace       = "time-service-staging"
+  service_account = "time-service"
+  role_arn        = aws_iam_role.ecr_pull.arn
+}
+
+resource "aws_eks_pod_identity_association" "time_service_prod" {
+  cluster_name    = local.cluster_name
+  namespace       = "time-service-prod"
   service_account = "time-service"
   role_arn        = aws_iam_role.ecr_pull.arn
 }
