@@ -39,7 +39,6 @@ echo "Setting up OIDC in account: $AWS_ACCOUNT_ID"
 aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
   --client-id-list sts.amazonaws.com \
-  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1 \
   --tags Key=Name,Value=GitHubActionsOIDC
 ```
 
@@ -55,18 +54,21 @@ aws iam create-open-id-connect-provider \
 
 ## Step 2: Create GitHubActionsRole
 
-### For Dev/Staging/Prod Accounts (EKS Management)
+**Step 2.1: Create trust policy and role** (same for all accounts):
 
-Create a file `github-actions-trust-policy.json`:
+```bash
+# Get account ID
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-```json
+# Create trust policy inline
+cat > github-actions-trust-policy.json << EOF
 {
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+        "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
@@ -80,30 +82,16 @@ Create a file `github-actions-trust-policy.json`:
     }
   ]
 }
-```
-
-**Replace `ACCOUNT_ID`** with your actual account ID:
-
-```bash
-# Get account ID
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-# Replace ACCOUNT_ID in the policy file
-sed "s/ACCOUNT_ID/$AWS_ACCOUNT_ID/g" github-actions-trust-policy.json > trust-policy-temp.json
+EOF
 
 # Create the role
 aws iam create-role \
   --role-name GitHubActionsRole \
-  --assume-role-policy-document file://trust-policy-temp.json \
+  --assume-role-policy-document file://github-actions-trust-policy.json \
   --description "Role for GitHub Actions to manage infrastructure"
 
-# Attach AdministratorAccess (or create a more restricted policy)
-aws iam attach-role-policy \
-  --role-name GitHubActionsRole \
-  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
-
 # Clean up
-rm trust-policy-temp.json
+rm github-actions-trust-policy.json
 ```
 
 **Expected output:**
@@ -119,83 +107,62 @@ rm trust-policy-temp.json
 
 ---
 
-### For Tooling Account (ECR Management)
+**Step 2.2: Attach permissions** (differs by account type):
 
-The tooling account only needs permissions for S3 and ECR:
+### A. For Dev/Staging/Prod Accounts (EKS Clusters)
+
+These accounts need broad permissions to manage VPC, EKS, ArgoCD, etc.:
 
 ```bash
-# Create role (same trust policy as above)
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-sed "s/ACCOUNT_ID/$AWS_ACCOUNT_ID/g" github-actions-trust-policy.json > trust-policy-temp.json
-
-aws iam create-role \
+# Attach AdministratorAccess (or create a more restricted policy)
+aws iam attach-role-policy \
   --role-name GitHubActionsRole \
-  --assume-role-policy-document file://trust-policy-temp.json \
-  --description "Role for GitHub Actions to manage ECR policies"
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+```
 
-# Create custom policy for tooling
-cat > tooling-policy.json << 'EOF'
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:*"
-      ],
-      "Resource": [
-        "arn:aws:s3:::terraform-state-tooling",
-        "arn:aws:s3:::terraform-state-tooling/*"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ecr:GetRepositoryPolicy",
-        "ecr:SetRepositoryPolicy",
-        "ecr:DeleteRepositoryPolicy",
-        "ecr:DescribeRepositories"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-EOF
+### B. For Tooling Account (ECR Only)
 
-# Create and attach the policy
+The tooling account only needs S3 and ECR permissions. Use least privilege:
+
+```bash
+# Create custom policy inline
 aws iam create-policy \
   --policy-name GitHubActionsToolingPolicy \
-  --policy-document file://tooling-policy.json
+  --policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["s3:*"],
+        "Resource": [
+          "arn:aws:s3:::terraform-state-alexidp-tooling",
+          "arn:aws:s3:::terraform-state-alexidp-tooling/*"
+        ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "ecr:GetRepositoryPolicy",
+          "ecr:SetRepositoryPolicy",
+          "ecr:DeleteRepositoryPolicy",
+          "ecr:DescribeRepositories"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }'
 
-# Get the policy ARN
+# Get the policy ARN and attach it
 POLICY_ARN=$(aws iam list-policies --query "Policies[?PolicyName=='GitHubActionsToolingPolicy'].Arn" --output text)
 
 aws iam attach-role-policy \
   --role-name GitHubActionsRole \
   --policy-arn $POLICY_ARN
-
-# Clean up
-rm trust-policy-temp.json tooling-policy.json
 ```
 
 ---
 
 ## Step 3: Verify Setup
-
-```bash
-# Check OIDC provider exists
-aws iam list-open-id-connect-providers
-
-# Check role exists
-aws iam get-role --role-name GitHubActionsRole
-
-# Get role ARN (you'll need this for workflows)
-aws iam get-role --role-name GitHubActionsRole --query 'Role.Arn' --output text
-```
-
----
-
-## Step 4: Update Workflows
 
 Copy the role ARN and update your workflow files:
 
