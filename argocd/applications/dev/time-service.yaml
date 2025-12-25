@@ -22,7 +22,7 @@ spec:
         values: |
           app:
             name: time-service
-            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/localtime:sha-714f35e
+            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/localtime:sha-68a2828
             port: 1599
           resourceProfile: small
           replicaCount: 1
@@ -43,3 +43,4 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+

@@ -16,7 +16,7 @@ spec:
         values: |
           app:
             name: version-service
-            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/gitinfo:v1.0.0
+            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/version:v1.0.0
             port: 8080
           resourceProfile: large
           replicaCount: 3
@@ -37,3 +37,4 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+
