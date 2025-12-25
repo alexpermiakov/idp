@@ -13,8 +13,34 @@ provider "aws" {
   region = "us-west-2"
 }
 
+resource "aws_ecr_repository" "localtime" {
+  name                 = "idp/localtime"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name = "IDP LocalTime Service"
+  }
+}
+
+resource "aws_ecr_repository" "version" {
+  name                 = "idp/version"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name = "IDP Version Service"
+  }
+}
+
 resource "aws_ecr_repository_policy" "allow_dev_pull" {
-  repository = "idp/localtime"
+  repository = aws_ecr_repository.localtime.name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -39,7 +65,7 @@ resource "aws_ecr_repository_policy" "allow_dev_pull" {
 }
 
 resource "aws_ecr_repository_policy" "allow_dev_pull_version" {
-  repository = "idp/version"
+  repository = aws_ecr_repository.version.name
 
   policy = jsonencode({
     Version = "2012-10-17"
