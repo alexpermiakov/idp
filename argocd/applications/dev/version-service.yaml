@@ -5,7 +5,7 @@ metadata:
   namespace: argocd
   annotations:
     # Dev environment: Always use latest sha- tagged images
-    argocd-image-updater.argoproj.io/image-list: version-service=864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/version
+    argocd-image-updater.argoproj.io/image-list: version-service=864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/version
     argocd-image-updater.argoproj.io/version-service.update-strategy: latest
     argocd-image-updater.argoproj.io/version-service.allow-tags: regexp:^sha-.*
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
@@ -22,7 +22,7 @@ spec:
         values: |
           app:
             name: version-service
-            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/gitinfo:sha-437d203
+            image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/version:sha-4508f32
             port: 8080
           resourceProfile: small
           replicaCount: 1
