@@ -105,6 +105,13 @@ resource "kubernetes_secret_v1" "github_app_credentials" {
     githubAppPrivateKey     = var.github_app_private_key
   }
 
+  lifecycle {
+    ignore_changes = [
+      metadata[0].annotations,
+      metadata[0].labels,
+    ]
+  }
+
   depends_on = [helm_release.argocd]
 }
 
