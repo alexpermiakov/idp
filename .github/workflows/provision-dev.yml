@@ -1,7 +1,11 @@
-name: Provision Pull Request
+name: Provision Dev
 
 on:
-  pull_request:
+  workflow_dispatch: # Manual trigger
+  push:
+    branches:
+      - main
+      - test-cluster
 
 env:
   AWS_REGION: us-west-2
