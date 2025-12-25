@@ -6,13 +6,15 @@ on:
     branches:
       - main
       - test-cluster
+    paths:
+      - 'infra/**'
 
 env:
   AWS_REGION: us-west-2
   AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
-  TF_VAR_pr_number: ${{ github.event.number }}
+  TF_VAR_pr_number: "7"  # Fixed to manage k8s-pr-7 cluster
 
-jobs:
+jobs:Dev Cluster
   provision:
     name: Provision Pull Request
     runs-on: ubuntu-latest
@@ -41,7 +43,7 @@ jobs:
         working-directory: infra/entry
         run: |
           terraform init \
-            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="region=7
             -backend-config="bucket=terraform-state-alexidp-dev" \
             -backend-config="key=pr-${{ github.event.number }}/state.tfstate"
 
