@@ -2,11 +2,12 @@ name: Provision Dev
 
 on:
   pull_request:
-  workflow_dispatch: # Manual trigger
+  workflow_dispatch:
 
 env:
   AWS_REGION: us-west-2
   AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
+  BUCKET_NAME: terraform-state-alexidp-dev
   TF_VAR_pr_number: ${{ github.event.number }}
 
 jobs:
@@ -39,7 +40,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="bucket=terraform-state-alexidp-dev" \
+            -backend-config="bucket=${{ env.BUCKET_NAME }}" \
             -backend-config="key=pr-${{ github.event.number }}/state.tfstate"
 
       - name: Terraform Apply

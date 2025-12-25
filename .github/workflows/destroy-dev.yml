@@ -13,6 +13,7 @@ on:
 env:
   AWS_REGION: us-west-2
   AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
+  BUCKET_NAME: terraform-state-alexidp-dev
 
 jobs:
   destroy:
@@ -47,7 +48,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="bucket=terraform-state-alexidp-dev" \
+            -backend-config="bucket=${{ env.BUCKET_NAME }}" \
             -backend-config="key=pr-${{ inputs.pr_number || github.event.number }}/state.tfstate" \
             -backend-config="use_lockfile=true"
 
@@ -59,7 +60,7 @@ jobs:
         working-directory: infra/entry
         run: |
           PR_NUMBER=${{ inputs.pr_number || github.event.number }}
-          BUCKET="terraform-state-alexidp-dev"
+          BUCKET=${{ env.BUCKET_NAME }}
           PREFIX="pr-$PR_NUMBER"
 
           echo "Deleting Terraform state from S3: s3://$BUCKET/$PREFIX/"

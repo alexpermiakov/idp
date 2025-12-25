@@ -1,0 +1,54 @@
+name: Bootstrap Tooling Backend
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::864992049050:role/GitHubActionsRole # Tooling account
+  BUCKET_NAME: terraform-state-alexidp-tooling
+
+jobs:
+  bootstrap:
+    name: Create S3 Backend
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Create S3 Bucket
+        run: |
+          # Create bucket if it doesn't exist
+          if aws s3 ls "s3://${{ env.BUCKET_NAME }}" 2>&1 | grep -q 'NoSuchBucket'; then
+            echo "Creating S3 bucket..."
+            aws s3 mb "s3://${{ env.BUCKET_NAME }}" --region ${{ env.AWS_REGION }}
+            
+            # Enable versioning
+            aws s3api put-bucket-versioning \
+              --bucket "${{ env.BUCKET_NAME }}" \
+              --versioning-configuration Status=Enabled
+            
+            # Enable encryption
+            aws s3api put-bucket-encryption \
+              --bucket "${{ env.BUCKET_NAME }}" \
+              --server-side-encryption-configuration '{
+                "Rules": [{
+                  "ApplyServerSideEncryptionByDefault": {
+                    "SSEAlgorithm": "AES256"
+                  }
+                }]
+              }'
+            
+            echo "✅ S3 bucket created and configured"
+          else
+            echo "✅ S3 bucket already exists"
+          fi
+

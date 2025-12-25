@@ -1,0 +1,50 @@
+name: Provision Tooling
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/tooling/**"
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::864992049050:role/GitHubActionsRole
+
+jobs:
+  provision:
+    name: Provision Tooling Account
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+
+      - name: Terraform Init
+        working-directory: infra/tooling
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: infra/tooling
+        run: terraform plan
+
+      - name: Terraform Apply
+        working-directory: infra/tooling
+        run: terraform apply -auto-approve
+
