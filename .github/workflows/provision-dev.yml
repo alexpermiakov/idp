@@ -40,11 +40,11 @@ jobs:
           terraform init \
             -backend-config="region=${{ env.AWS_REGION }}" \
             -backend-config="bucket=terraform-state-alexidp-dev" \
-            -backend-config="key=pr-7/state.tfstate"
+            -backend-config="key=pr-${{ github.event.number }}/state.tfstate"
 
       - name: Terraform Apply
         working-directory: infra/entry
         run: |
-          terraform apply -auto-appr${{ github.event.number }}ve \
+          terraform apply -auto-approve \
             -var='admin_role_arns=["arn:aws:iam::935743309409:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"]'
 
