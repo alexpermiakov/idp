@@ -241,7 +241,3 @@ You need **three provision workflows**:
 - Three provision workflows (one per environment)
 - ECR Pod Identity per environment namespace
 
-## Next Steps
-
-See [NEXT_STEPS.md](NEXT_STEPS.md) for implementation plan.
-

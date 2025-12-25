@@ -142,10 +142,17 @@ aws iam create-policy \
       {
         "Effect": "Allow",
         "Action": [
+          "ecr:CreateRepository",
+          "ecr:DeleteRepository",
+          "ecr:DescribeRepositories",
+          "ecr:ListTagsForResource",
+          "ecr:TagResource",
+          "ecr:UntagResource",
+          "ecr:PutImageTagMutability",
+          "ecr:PutImageScanningConfiguration",
           "ecr:GetRepositoryPolicy",
           "ecr:SetRepositoryPolicy",
-          "ecr:DeleteRepositoryPolicy",
-          "ecr:DescribeRepositories"
+          "ecr:DeleteRepositoryPolicy"
         ],
         "Resource": "*"
       }
