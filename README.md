@@ -2,22 +2,13 @@
 
 Infrastructure as Code for provisioning EKS clusters with ArgoCD.
 
-## Local Development
-
-### Prerequisites
-
-Visit https://d-9267ef45c3.awsapps.com/start, click "Access keys", and copy the credentials.
-
-```bash
-# Test access
-aws sts get-caller-identity
-```
-
 ### Connect to EKS Cluster
 
 After deployment:
 
 ```bash
+Visit https://d-9267ef45c3.awsapps.com/start, click "Access keys", and copy the credentials.
+
 export AWS_PROFILE=935743309409_AdministratorAccess
 
 # Verify AWS access
