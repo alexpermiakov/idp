@@ -36,3 +36,26 @@ Access at https://localhost:8080 and login with username `admin` and the passwor
 - Admin password is auto-generated and stored in Kubernetes secret `argocd-initial-admin-secret`
 - Insecure mode is enabled (HTTP) - for production, consider enabling TLS
 
+## Cleanup / Destruction
+
+The module includes automatic cleanup procedures to handle ArgoCD's finalizers and CRDs during `terraform destroy`:
+
+1. Removes finalizers from all Applications and ApplicationSets
+2. Deletes all ArgoCD custom resources
+3. Removes CRDs that Helm keeps by default
+4. Namespace deletion timeout is set to 15 minutes
+
+If you still encounter issues during destroy, you can manually clean up:
+
+```bash
+# Remove finalizers from applications
+kubectl get applications.argoproj.io -A -o json | \
+  jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | \
+  while read namespace name; do
+    kubectl patch application "$name" -n "$namespace" -p '{"metadata":{"finalizers":null}}' --type=merge
+  done
+
+# Delete CRDs
+kubectl delete crd applications.argoproj.io applicationsets.argoproj.io appprojects.argoproj.io imageupdaters.argocd-image-updater.argoproj.io
+```
+

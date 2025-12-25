@@ -3,9 +3,10 @@ data "aws_caller_identity" "current" {}
 locals {
   ecr_account_id = var.ecr_account_id
   cluster_name   = var.cluster_name
+  dev_account_id = data.aws_caller_identity.current.account_id
 }
 
-# IAM policy for ECR access
+# IAM policy for ECR access (cross-account)
 resource "aws_iam_policy" "ecr_pull" {
   name        = "${local.cluster_name}-ecr-pull-policy"
   description = "Policy for pulling images from ECR in account ${local.ecr_account_id}"
@@ -28,6 +29,20 @@ resource "aws_iam_policy" "ecr_pull" {
           "ecr:BatchGetImage"
         ]
         Resource = "arn:aws:ecr:*:${local.ecr_account_id}:repository/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "ecr:ResourceAccount" = local.ecr_account_id
+          }
+        }
       }
     ]
   })
@@ -59,18 +74,20 @@ resource "aws_iam_role_policy_attachment" "ecr_pull" {
   policy_arn = aws_iam_policy.ecr_pull.arn
 }
 
-# Pod Identity Association for version-service
-resource "aws_eks_pod_identity_association" "version_service" {
+# Pod Identity Associations for dev environment only
+# Note: When staging/prod clusters are created, they will have their own 
+# instances of this module with their own pod identity associations
+
+resource "aws_eks_pod_identity_association" "version_service_dev" {
   cluster_name    = local.cluster_name
-  namespace       = "version-service"
+  namespace       = "version-service-dev"
   service_account = "version-service"
   role_arn        = aws_iam_role.ecr_pull.arn
 }
 
-# Pod Identity Association for time-service
-resource "aws_eks_pod_identity_association" "time_service" {
+resource "aws_eks_pod_identity_association" "time_service_dev" {
   cluster_name    = local.cluster_name
-  namespace       = "time-service"
+  namespace       = "time-service-dev"
   service_account = "time-service"
   role_arn        = aws_iam_role.ecr_pull.arn
 }

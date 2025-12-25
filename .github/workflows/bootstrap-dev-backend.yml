@@ -6,6 +6,7 @@ on:
 env:
   AWS_REGION: us-west-2
   AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
+  BUCKET_NAME: terraform-state-alexidp-dev
 
 jobs:
   bootstrap-backend:
@@ -41,7 +42,7 @@ jobs:
       - name: Terraform Init, Validate, Plan, and Apply
         env:
           TF_VAR_region: ${{ env.AWS_REGION }}
-          TF_VAR_s3_bucket_name: "terraform-state-alexidp-dev"
+          TF_VAR_s3_bucket_name: ${{ env.BUCKET_NAME }}
         run: |
           terraform init -reconfigure
           terraform validate

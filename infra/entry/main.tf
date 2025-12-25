@@ -53,8 +53,6 @@ provider "helm" {
   }
 }
 
-# GitHub App credentials for ArgoCD Image Updater (optional)
-# If not present in SSM, Image Updater will still run but won't write back to Git
 data "aws_ssm_parameter" "github_app_id" {
   name = "/idp/github-app-id"
 }
