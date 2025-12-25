@@ -6,11 +6,7 @@ terraform {
     }
   }
 
-  backend "s3" {
-    bucket = "terraform-state-alexidp-tooling"
-    key    = "ecr/state.tfstate"
-    region = "us-west-2"
-  }
+  backend "s3" {}
 }
 
 provider "aws" {
