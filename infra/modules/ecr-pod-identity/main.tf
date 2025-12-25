@@ -6,7 +6,6 @@ locals {
   dev_account_id = data.aws_caller_identity.current.account_id
 }
 
-# IAM policy for ECR access (cross-account)
 resource "aws_iam_policy" "ecr_pull" {
   name        = "${local.cluster_name}-ecr-pull-policy"
   description = "Policy for pulling images from ECR in account ${local.ecr_account_id}"
@@ -48,7 +47,6 @@ resource "aws_iam_policy" "ecr_pull" {
   })
 }
 
-# IAM role for pod identity
 resource "aws_iam_role" "ecr_pull" {
   name = "${local.cluster_name}-ecr-pull-role"
 
@@ -73,10 +71,6 @@ resource "aws_iam_role_policy_attachment" "ecr_pull" {
   role       = aws_iam_role.ecr_pull.name
   policy_arn = aws_iam_policy.ecr_pull.arn
 }
-
-# Pod Identity Associations for dev environment only
-# Note: When staging/prod clusters are created, they will have their own 
-# instances of this module with their own pod identity associations
 
 resource "aws_eks_pod_identity_association" "version_service_dev" {
   cluster_name    = local.cluster_name
