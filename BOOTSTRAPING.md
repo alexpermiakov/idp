@@ -42,14 +42,6 @@ aws iam create-open-id-connect-provider \
   --tags Key=Name,Value=GitHubActionsOIDC
 ```
 
-**Expected output:**
-
-```json
-{
-  "OpenIDConnectProviderArn": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
-}
-```
-
 ---
 
 ## Step 2: Create GitHubActionsRole
@@ -76,7 +68,7 @@ cat > github-actions-trust-policy.json << EOF
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:alexpermiakov/idp:*"
+          "token.actions.githubusercontent.com:sub": "repo:alexpermiakov/*"
         }
       }
     }
@@ -92,17 +84,6 @@ aws iam create-role \
 
 # Clean up
 rm github-actions-trust-policy.json
-```
-
-**Expected output:**
-
-```json
-{
-  "Role": {
-    "RoleName": "GitHubActionsRole",
-    "Arn": "arn:aws:iam::123456789012:role/GitHubActionsRole"
-  }
-}
 ```
 
 ---
@@ -122,7 +103,7 @@ aws iam attach-role-policy \
 
 ### B. For Tooling Account (ECR Only)
 
-The tooling account only needs S3 and ECR permissions. Use least privilege:
+The tooling account only needs S3 and ECR permissions:
 
 ```bash
 # Create custom policy inline
@@ -142,10 +123,31 @@ aws iam create-policy \
       {
         "Effect": "Allow",
         "Action": [
+          "ecr:GetAuthorizationToken"
+        ],
+        "Resource": "*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "ecr:CreateRepository",
+          "ecr:DeleteRepository",
+          "ecr:DescribeRepositories",
+          "ecr:ListTagsForResource",
+          "ecr:TagResource",
+          "ecr:UntagResource",
+          "ecr:PutImageTagMutability",
+          "ecr:PutImageScanningConfiguration",
           "ecr:GetRepositoryPolicy",
           "ecr:SetRepositoryPolicy",
           "ecr:DeleteRepositoryPolicy",
-          "ecr:DescribeRepositories"
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
         ],
         "Resource": "*"
       }
@@ -159,149 +161,4 @@ aws iam attach-role-policy \
   --role-name GitHubActionsRole \
   --policy-arn $POLICY_ARN
 ```
-
----
-
-## Step 3: Verify Setup
-
-Copy the role ARN and update your workflow files:
-
-**For dev account** (`.github/workflows/provision-dev.yml`):
-
-```yaml
-env:
-  AWS_ROLE_ARN: arn:aws:iam::935743309409:role/GitHubActionsRole
-```
-
-**For tooling account** (`.github/workflows/provision-tooling.yml`, `.github/workflows/bootstrap-tooling.yml`):
-
-```yaml
-env:
-  AWS_ROLE_ARN: arn:aws:iam::864992049050:role/GitHubActionsRole
-```
-
----
-
-## Account Setup Checklist
-
-### ✅ Dev Account (935743309409)
-
-- [x] GitHub OIDC Provider created
-- [x] GitHubActionsRole created
-- [x] Role ARN in `provision-dev.yml`
-
-### ⬜ Tooling Account (864992049050)
-
-- [ ] GitHub OIDC Provider created
-- [ ] GitHubActionsRole created (limited permissions)
-- [ ] Role ARN in `provision-tooling.yml` and `bootstrap-tooling.yml`
-
-### ⬜ Staging Account (TBD)
-
-- [ ] GitHub OIDC Provider created
-- [ ] GitHubActionsRole created
-- [ ] Role ARN in `provision-staging.yml`
-
-### ⬜ Prod Account (TBD)
-
-- [ ] GitHub OIDC Provider created
-- [ ] GitHubActionsRole created
-- [ ] Role ARN in `provision-prod.yml`
-
----
-
-## Security Best Practices
-
-### 1. Use Least Privilege
-
-Instead of `AdministratorAccess`, create custom policies with only required permissions:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["ec2:*", "eks:*", "iam:*", "s3:*", "ecr:*"],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-### 2. Restrict by Branch
-
-Modify trust policy to only allow `main` branch:
-
-```json
-"Condition": {
-  "StringEquals": {
-    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-    "token.actions.githubusercontent.com:sub": "repo:alexpermiakov/idp:ref:refs/heads/main"
-  }
-}
-```
-
-### 3. Enable CloudTrail
-
-Monitor all actions taken by GitHub Actions:
-
-```bash
-aws cloudtrail create-trail \
-  --name github-actions-audit \
-  --s3-bucket-name my-cloudtrail-bucket
-```
-
----
-
-## Troubleshooting
-
-### "Not authorized to perform: sts:AssumeRoleWithWebIdentity"
-
-**Cause**: Trust policy doesn't allow your repository or the OIDC provider doesn't exist.
-
-**Fix**:
-
-1. Check OIDC provider exists: `aws iam list-open-id-connect-providers`
-2. Verify repository name in trust policy matches: `alexpermiakov/idp`
-3. Check role ARN in workflow matches the actual role ARN
-
-### "No valid credential sources found"
-
-**Cause**: Workflow can't assume the role.
-
-**Fix**:
-
-1. Verify `id-token: write` permission in workflow
-2. Check `audience: sts.amazonaws.com` is set
-3. Confirm role ARN is correct
-
----
-
-## Why Can't This Be Automated?
-
-**Chicken and egg problem:**
-
-- Terraform needs AWS credentials to run
-- GitHub Actions needs the OIDC + Role to get credentials
-- Can't create OIDC + Role with Terraform because... no credentials yet!
-
-**Solutions:**
-
-1. ✅ **Manual setup** (current approach) - Do once per account
-2. ⚠️ **CloudFormation StackSets** - Use AWS Organizations to deploy across accounts
-3. ⚠️ **AWS CLI + Script** - Still requires manual AWS credentials initially
-4. ⚠️ **Terraform Cloud** - Use Terraform Cloud with stored AWS credentials
-
-For most teams, **manual setup once per account** is the simplest approach.
-
----
-
-## Next Steps
-
-After completing this setup for an account:
-
-1. **Dev account**: Create PR to run `provision-dev.yml`
-2. **Tooling account**: Run `bootstrap-tooling.yml` then `provision-tooling.yml`
-3. **Staging/Prod**: Repeat this process when ready to create those accounts
 

@@ -16,7 +16,7 @@ spec:
         values: |
           app:
             name: time-service
-            image: 864992049050.dkr.ecr.us-east-1.amazonaws.com/idp/localtime:v1.0.0
+            image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:v1.0.0
             port: 1599
           resourceProfile: large
           replicaCount: 3
