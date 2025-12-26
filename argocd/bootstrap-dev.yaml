@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/alexpermiakov/idp
-    targetRevision: ${BRANCH_NAME}
+    targetRevision: watch-feature-branches
     path: "argocd/applications/dev"
     directory:
       recurse: true
@@ -18,3 +18,4 @@ spec:
     automated:
       prune: true
       selfHeal: true
+
