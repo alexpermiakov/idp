@@ -46,29 +46,19 @@ resource "helm_release" "argocd_image_updater" {
   version    = "1.0.2"
   namespace  = kubernetes_namespace_v1.argocd.metadata[0].name
 
-  values = [
-    yamlencode({
-      extraArgs = [
-        "--interval=60s"
-      ]
-      config = {
-        registries = [
-          {
-            name    = "ECR"
-            api_url = "https://864992049050.dkr.ecr.us-west-2.amazonaws.com"
-            prefix  = "864992049050.dkr.ecr.us-west-2.amazonaws.com"
-            ping    = "no"
-          }
-        ]
-        argocd = {
-          grpcWeb   = true
-          insecure  = true
-          plaintext = true
-        }
-        "git.user"  = "argocd-image-updater[bot]"
-        "git.email" = "argocd-image-updater[bot]@users.noreply.github.com"
-      }
-    })
+  set = [
+    {
+      name  = "config.argocd.grpcWeb"
+      value = "true"
+    },
+    {
+      name  = "config.argocd.insecure"
+      value = "true"
+    },
+    {
+      name  = "config.argocd.plaintext"
+      value = "true"
+    }
   ]
 
   depends_on = [
