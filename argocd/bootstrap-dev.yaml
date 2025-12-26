@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/alexpermiakov/idp
-    targetRevision: watch-feature-branches
+    targetRevision: main
     path: "argocd/applications/dev"
     directory:
       recurse: true
