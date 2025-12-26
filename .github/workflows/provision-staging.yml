@@ -1,0 +1,49 @@
+name: Provision Staging
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-west-2
+  AWS_ROLE_ARN: arn:aws:iam::470879558261:role/GitHubActionsRole
+  BUCKET_NAME: terraform-state-alexidp-staging
+
+jobs:
+  provision:
+    name: Provision Staging Cluster
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+
+      - name: Terraform Init
+        working-directory: infra/entry
+        run: |
+          terraform init \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="bucket=${{ env.BUCKET_NAME }}" \
+            -backend-config="key=staging/state.tfstate"
+
+      - name: Terraform Apply
+        working-directory: infra/entry
+        run: |
+          terraform apply -auto-approve \
+            -var='admin_role_arns=["arn:aws:iam::470879558261:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_AdministratorAccess_82ac38af355c29a0"]'
+
