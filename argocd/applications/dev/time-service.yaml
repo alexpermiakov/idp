@@ -25,7 +25,7 @@ spec:
             image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:sha-68a2828
             port: 1599
           resourceProfile: small
-          replicaCount: 4
+          replicaCount: 7
           ingress:
             enabled: true
             className: alb
