@@ -28,6 +28,11 @@ resource "helm_release" "argocd" {
       # Enable admin user
       name  = "configs.params.server\\.insecure"
       value = "true"
+    },
+    {
+      # Git repository polling interval (default is 3m)
+      name  = "configs.params.timeout\\.reconciliation"
+      value = "60s"
     }
   ]
 
@@ -41,47 +46,29 @@ resource "helm_release" "argocd_image_updater" {
   version    = "1.0.2"
   namespace  = kubernetes_namespace_v1.argocd.metadata[0].name
 
-  set = [
-    {
-      name  = "config.interval"
-      value = "60s"
-    },
-    {
-      name  = "config.registries[0].name"
-      value = "ECR"
-    },
-    {
-      name  = "config.registries[0].api_url"
-      value = "https://864992049050.dkr.ecr.us-east-1.amazonaws.com"
-    },
-    {
-      name  = "config.registries[0].prefix"
-      value = "864992049050.dkr.ecr.us-east-1.amazonaws.com"
-    },
-    {
-      name  = "config.registries[0].ping"
-      value = "false"
-    },
-    {
-      name  = "config.argocd.grpcWeb"
-      value = "true"
-    },
-    {
-      name  = "config.argocd.insecure"
-      value = "true"
-    },
-    {
-      name  = "config.argocd.plaintext"
-      value = "true"
-    },
-    {
-      name  = "config.gitCommitUser"
-      value = "argocd-image-updater[bot]"
-    },
-    {
-      name  = "config.gitCommitMail"
-      value = "argocd-image-updater[bot]@users.noreply.github.com"
-    }
+  values = [
+    yamlencode({
+      extraArgs = [
+        "--interval=60s"
+      ]
+      config = {
+        registries = [
+          {
+            name    = "ECR"
+            api_url = "https://864992049050.dkr.ecr.us-west-2.amazonaws.com"
+            prefix  = "864992049050.dkr.ecr.us-west-2.amazonaws.com"
+            ping    = "no"
+          }
+        ]
+        argocd = {
+          grpcWeb   = true
+          insecure  = true
+          plaintext = true
+        }
+        "git.user"  = "argocd-image-updater[bot]"
+        "git.email" = "argocd-image-updater[bot]@users.noreply.github.com"
+      }
+    })
   ]
 
   depends_on = [
