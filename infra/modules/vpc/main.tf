@@ -1,4 +1,4 @@
-resource "aws_vpc" "telemetry_vpc" {
+resource "aws_vpc" "idp_vpc" {
   cidr_block       = var.vpc_cidr_block
   instance_tenancy = "default"
 
@@ -6,12 +6,12 @@ resource "aws_vpc" "telemetry_vpc" {
   enable_dns_hostnames = true
 
   tags = {
-    "Name" = "telemetry_vpc-pr-${var.pr_number}"
+    "Name" = "idp_vpc-pr-${var.pr_number}"
   }
 }
 
-resource "aws_subnet" "telemetry_public_subnet_1a" {
-  vpc_id                  = aws_vpc.telemetry_vpc.id
+resource "aws_subnet" "idp_public_subnet_1a" {
+  vpc_id                  = aws_vpc.idp_vpc.id
   cidr_block              = var.subnet_cidr_blocks[0]
   availability_zone       = var.availability_zones[0]
   map_public_ip_on_launch = true
@@ -21,8 +21,8 @@ resource "aws_subnet" "telemetry_public_subnet_1a" {
   }
 }
 
-resource "aws_subnet" "telemetry_private_subnet_1a" {
-  vpc_id                  = aws_vpc.telemetry_vpc.id
+resource "aws_subnet" "idp_private_subnet_1a" {
+  vpc_id                  = aws_vpc.idp_vpc.id
   cidr_block              = var.subnet_cidr_blocks[1]
   availability_zone       = var.availability_zones[0]
   map_public_ip_on_launch = false
@@ -32,8 +32,8 @@ resource "aws_subnet" "telemetry_private_subnet_1a" {
   }
 }
 
-resource "aws_subnet" "telemetry_private_subnet_1b" {
-  vpc_id                  = aws_vpc.telemetry_vpc.id
+resource "aws_subnet" "idp_private_subnet_1b" {
+  vpc_id                  = aws_vpc.idp_vpc.id
   cidr_block              = var.subnet_cidr_blocks[2]
   availability_zone       = var.availability_zones[1]
   map_public_ip_on_launch = false
@@ -43,76 +43,76 @@ resource "aws_subnet" "telemetry_private_subnet_1b" {
   }
 }
 
-resource "aws_internet_gateway" "telemetry_ig" {
-  vpc_id = aws_vpc.telemetry_vpc.id
+resource "aws_internet_gateway" "idp_ig" {
+  vpc_id = aws_vpc.idp_vpc.id
 
   tags = {
-    "Name" = "telemetry_ig-pr-${var.pr_number}"
+    "Name" = "idp_ig-pr-${var.pr_number}"
   }
 }
 
-resource "aws_route_table" "telemetry_rt" {
-  vpc_id = aws_vpc.telemetry_vpc.id
+resource "aws_route_table" "idp_rt" {
+  vpc_id = aws_vpc.idp_vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.telemetry_ig.id
+    gateway_id = aws_internet_gateway.idp_ig.id
   }
 
   tags = {
-    "Name" = "telemetry_rt-pr-${var.pr_number}"
+    "Name" = "idp_rt-pr-${var.pr_number}"
   }
 }
 
-resource "aws_route_table_association" "telemetry_rta" {
-  subnet_id      = aws_subnet.telemetry_public_subnet_1a.id
-  route_table_id = aws_route_table.telemetry_rt.id
+resource "aws_route_table_association" "idp_rta" {
+  subnet_id      = aws_subnet.idp_public_subnet_1a.id
+  route_table_id = aws_route_table.idp_rt.id
 }
 
-resource "aws_eip" "telemetry_eip" {
+resource "aws_eip" "idp_eip" {
   domain = "vpc"
 
   tags = {
-    Name = "telemetry_nat_eip-pr-${var.pr_number}"
+    Name = "idp_nat_eip-pr-${var.pr_number}"
   }
 }
 
-resource "aws_nat_gateway" "telemetry_nat" {
-  allocation_id = aws_eip.telemetry_eip.id
-  subnet_id     = aws_subnet.telemetry_public_subnet_1a.id
+resource "aws_nat_gateway" "idp_nat" {
+  allocation_id = aws_eip.idp_eip.id
+  subnet_id     = aws_subnet.idp_public_subnet_1a.id
 
   tags = {
-    Name = "telemetry_nat-pr-${var.pr_number}"
+    Name = "idp_nat-pr-${var.pr_number}"
   }
 }
 
-resource "aws_route_table" "telemetry_private_rt" {
-  vpc_id = aws_vpc.telemetry_vpc.id
+resource "aws_route_table" "idp_private_rt" {
+  vpc_id = aws_vpc.idp_vpc.id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.telemetry_nat.id
+    nat_gateway_id = aws_nat_gateway.idp_nat.id
   }
 
   tags = {
-    Name = "telemetry_private_rt-pr-${var.pr_number}"
+    Name = "idp_private_rt-pr-${var.pr_number}"
   }
 }
 
-resource "aws_route_table_association" "telemetry_private_rta" {
-  subnet_id      = aws_subnet.telemetry_private_subnet_1a.id
-  route_table_id = aws_route_table.telemetry_private_rt.id
+resource "aws_route_table_association" "idp_private_rta" {
+  subnet_id      = aws_subnet.idp_private_subnet_1a.id
+  route_table_id = aws_route_table.idp_private_rt.id
 }
 
-resource "aws_route_table_association" "telemetry_private_rtb" {
-  subnet_id      = aws_subnet.telemetry_private_subnet_1b.id
-  route_table_id = aws_route_table.telemetry_private_rt.id
+resource "aws_route_table_association" "idp_private_rtb" {
+  subnet_id      = aws_subnet.idp_private_subnet_1b.id
+  route_table_id = aws_route_table.idp_private_rt.id
 }
 
 resource "aws_security_group" "iot_sg" {
   name        = "iot-sg-pr-${var.pr_number}"
   description = "Security group for IoT VPC Endpoint"
-  vpc_id      = aws_vpc.telemetry_vpc.id
+  vpc_id      = aws_vpc.idp_vpc.id
 
   egress {
     description = "Allow IoT to connect to MSK"
@@ -131,7 +131,7 @@ resource "aws_security_group" "iot_sg" {
 resource "aws_security_group" "consumer_sg" {
   name        = "test-msk-sg-pr-${var.pr_number}"
   description = "Security group for Lambda MSK consumer"
-  vpc_id      = aws_vpc.telemetry_vpc.id
+  vpc_id      = aws_vpc.idp_vpc.id
 
   egress {
     from_port   = 0
@@ -149,7 +149,7 @@ resource "aws_security_group" "consumer_sg" {
 resource "aws_security_group" "kafka_sg" {
   name        = "msk-sg-pr-${var.pr_number}"
   description = "Security group for MSK cluster"
-  vpc_id      = aws_vpc.telemetry_vpc.id
+  vpc_id      = aws_vpc.idp_vpc.id
 
   ingress {
     from_port       = 9096
