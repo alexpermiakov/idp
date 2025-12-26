@@ -23,20 +23,20 @@ data "aws_iam_policy_document" "lb_controller_assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [var.cluster_oidc_issuer_url]
+      identifiers = [var.cluster_oidc_provider_arn]
     }
 
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     condition {
       test     = "StringEquals"
-      variable = "${replace(var.cluster_oidc_issuer_url, "https://", "")}:sub"
+      variable = "${var.cluster_oidc_issuer_url}:sub"
       values   = ["system:serviceaccount:${local.lb_controller_namespace}:${local.lb_controller_service_account_name}"]
     }
 
     condition {
       test     = "StringEquals"
-      variable = "${replace(var.cluster_oidc_issuer_url, "https://", "")}:aud"
+      variable = "${var.cluster_oidc_issuer_url}:aud"
       values   = ["sts.amazonaws.com"]
     }
   }
