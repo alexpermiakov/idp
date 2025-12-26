@@ -30,9 +30,10 @@ resource "helm_release" "argocd" {
       value = "true"
     },
     {
-      # Set the app sync interval to 60s instead of default 3m
-      name  = "configs.params.application\\.sync\\.interval"
-      value = "60s"
+      # Application resync interval - how often ArgoCD polls git (default 3m = 180s)
+      # Value is in seconds
+      name  = "controller.app.resync"
+      value = "60"
     }
   ]
 
