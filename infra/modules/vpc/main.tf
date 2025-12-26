@@ -17,7 +17,20 @@ resource "aws_subnet" "idp_public_subnet_1a" {
   map_public_ip_on_launch = true
 
   tags = {
-    "Name" = "public_subnet_1a-pr-${var.pr_number}"
+    "Name"                   = "public_subnet_1a-pr-${var.pr_number}"
+    "kubernetes.io/role/elb" = "1"
+  }
+}
+
+resource "aws_subnet" "idp_public_subnet_1b" {
+  vpc_id                  = aws_vpc.idp_vpc.id
+  cidr_block              = var.subnet_cidr_blocks[3]
+  availability_zone       = var.availability_zones[1]
+  map_public_ip_on_launch = true
+
+  tags = {
+    "Name"                   = "public_subnet_1b-pr-${var.pr_number}"
+    "kubernetes.io/role/elb" = "1"
   }
 }
 
@@ -66,6 +79,11 @@ resource "aws_route_table" "idp_rt" {
 
 resource "aws_route_table_association" "idp_rta" {
   subnet_id      = aws_subnet.idp_public_subnet_1a.id
+  route_table_id = aws_route_table.idp_rt.id
+}
+
+resource "aws_route_table_association" "idp_rtb" {
+  subnet_id      = aws_subnet.idp_public_subnet_1b.id
   route_table_id = aws_route_table.idp_rt.id
 }
 
