@@ -30,10 +30,9 @@ resource "helm_release" "argocd" {
       value = "true"
     },
     {
-      # Application resync interval - how often ArgoCD polls git (default 3m = 180s)
-      # Value is in seconds
-      name  = "controller.app.resync"
-      value = "60"
+      # Git repository polling interval (default is 3m)
+      name  = "timeout.reconciliation"
+      value = "60s"
     }
   ]
 
