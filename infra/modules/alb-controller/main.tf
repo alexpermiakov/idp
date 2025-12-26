@@ -83,6 +83,7 @@ resource "aws_iam_policy" "lb_controller" {
           "ec2:DescribeVpcPeeringConnections",
           "ec2:DescribeSubnets",
           "ec2:DescribeSecurityGroups",
+          "ec2:GetSecurityGroupsForVpc",
           "ec2:DescribeInstances",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DescribeTags",
