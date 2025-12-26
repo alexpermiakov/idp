@@ -43,6 +43,10 @@ resource "helm_release" "argocd_image_updater" {
 
   set = [
     {
+      name  = "config.interval"
+      value = "60s"
+    },
+    {
       name  = "config.registries[0].name"
       value = "ECR"
     },
