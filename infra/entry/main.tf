@@ -73,6 +73,7 @@ module "argocd" {
   github_app_id              = try(data.aws_ssm_parameter.github_app_id.value, "")
   github_app_installation_id = try(data.aws_ssm_parameter.github_app_installation_id.value, "")
   github_app_private_key     = try(data.aws_ssm_parameter.github_app_private_key.value, "")
+  target_branch              = var.target_branch
 
   depends_on = [module.eks]
 }

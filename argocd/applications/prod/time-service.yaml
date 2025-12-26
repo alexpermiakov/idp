@@ -4,12 +4,7 @@ metadata:
   name: time-service-prod
   namespace: argocd
   annotations:
-    # Production: Triggered by GitHub releases
-    argocd-image-updater.argoproj.io/image-list: time-service=864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime
-    argocd-image-updater.argoproj.io/time-service.update-strategy: semver
-    argocd-image-updater.argoproj.io/time-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
-    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
-    argocd-image-updater.argoproj.io/git-branch: main
+    # Production: Manual updates via PR only (image updater disabled)
 spec:
   project: default
 
@@ -43,4 +38,3 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
