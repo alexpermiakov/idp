@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shared-alb-dev
+  namespace: default
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /localtime
+            pathType: Prefix
+            backend:
+              service:
+                name: time-service
+                namespace: time-service-dev
+                port:
+                  number: 80
+          - path: /version
+            pathType: Prefix
+            backend:
+              service:
+                name: version-service
+                namespace: version-service-dev
+                port:
+                  number: 80
+

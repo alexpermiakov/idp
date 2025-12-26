@@ -31,7 +31,7 @@ resource "helm_release" "argocd" {
     },
     {
       # Git repository polling interval (default is 3m)
-      name  = "configs.params.timeout\\.reconciliation"
+      name  = "configs.cm.timeout\\.reconciliation"
       value = "60s"
     }
   ]

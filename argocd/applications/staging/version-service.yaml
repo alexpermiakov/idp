@@ -15,7 +15,7 @@ spec:
 
   sources:
     - repoURL: https://github.com/alexpermiakov/idp
-      targetRevision: main
+      targetRevision: HEAD
       path: helm-charts/standard-service
       helm:
         releaseName: version-service
@@ -43,3 +43,4 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+
