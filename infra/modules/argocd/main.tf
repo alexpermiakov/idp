@@ -111,14 +111,38 @@ resource "null_resource" "app_of_apps" {
   provisioner "local-exec" {
     command = <<-EOT
       aws eks update-kubeconfig --name ${var.cluster_name} --region us-west-2
-      kubectl apply -f ${path.root}/../../argocd/bootstrap-dev.yaml
+      
+      # Create templated bootstrap application with dynamic branch
+      cat <<EOF | kubectl apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/alexpermiakov/idp
+    targetRevision: ${var.target_branch}
+    path: argocd/applications/dev
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+EOF
     EOT
   }
 
   depends_on = [helm_release.argocd]
 
   triggers = {
-    manifest_sha = filesha256("${path.root}/../../argocd/bootstrap-dev.yaml")
+    target_branch = var.target_branch
+    cluster_name  = var.cluster_name
   }
 }
 

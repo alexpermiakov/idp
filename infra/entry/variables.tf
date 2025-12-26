@@ -8,3 +8,9 @@ variable "admin_role_arns" {
   type        = list(string)
   default     = []
 }
+
+variable "target_branch" {
+  description = "Git branch for ArgoCD to watch (e.g., main, feature/my-feature)"
+  type        = string
+  default     = "main"
+}

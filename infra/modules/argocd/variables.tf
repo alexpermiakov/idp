@@ -21,3 +21,9 @@ variable "github_app_private_key" {
   sensitive   = true
   default     = ""
 }
+
+variable "target_branch" {
+  description = "Git branch for ArgoCD to watch (e.g., main, feature/my-feature)"
+  type        = string
+  default     = "main"
+}
