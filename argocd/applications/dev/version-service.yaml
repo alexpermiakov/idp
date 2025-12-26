@@ -9,13 +9,13 @@ metadata:
     argocd-image-updater.argoproj.io/version-service.update-strategy: latest
     argocd-image-updater.argoproj.io/version-service.allow-tags: regexp:^sha-.*
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
-    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-branch: ${BRANCH_NAME}
 spec:
   project: default
 
   sources:
     - repoURL: https://github.com/alexpermiakov/idp
-      targetRevision: main
+      targetRevision: ${BRANCH_NAME}
       path: helm-charts/standard-service
       helm:
         releaseName: version-service
@@ -26,6 +26,18 @@ spec:
             port: 8080
           resourceProfile: small
           replicaCount: 1
+          ingress:
+            enabled: true
+            className: alb
+            annotations:
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              alb.ingress.kubernetes.io/group.name: idp-services
+            hosts:
+              - host: ""
+                paths:
+                  - path: /version
+                    pathType: Prefix
 
   destination:
     server: https://kubernetes.default.svc
@@ -43,4 +55,3 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-

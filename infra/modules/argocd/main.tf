@@ -145,7 +145,6 @@ resource "null_resource" "app_of_apps" {
   }
 }
 
-# Cleanup ArgoCD applications and CRDs on destroy
 resource "null_resource" "argocd_cleanup" {
   provisioner "local-exec" {
     when    = destroy

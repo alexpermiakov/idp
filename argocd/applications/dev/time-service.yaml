@@ -9,13 +9,13 @@ metadata:
     argocd-image-updater.argoproj.io/time-service.update-strategy: latest
     argocd-image-updater.argoproj.io/time-service.allow-tags: regexp:^sha-.*
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
-    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/git-branch: ${BRANCH_NAME}
 spec:
   project: default
 
   sources:
     - repoURL: https://github.com/alexpermiakov/idp
-      targetRevision: main
+      targetRevision: ${BRANCH_NAME}
       path: helm-charts/standard-service
       helm:
         releaseName: time-service
@@ -25,7 +25,19 @@ spec:
             image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:sha-68a2828
             port: 1599
           resourceProfile: small
-          replicaCount: 1
+          replicaCount: 3
+          ingress:
+            enabled: true
+            className: alb
+            annotations:
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              alb.ingress.kubernetes.io/group.name: idp-services
+            hosts:
+              - host: ""
+                paths:
+                  - path: /localtime
+                    pathType: Prefix
 
   destination:
     server: https://kubernetes.default.svc

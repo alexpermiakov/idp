@@ -3,7 +3,13 @@ kind: Application
 metadata:
   name: version-service-prod
   namespace: argocd
-  # Production: NO Image Updater - manual promotion only via Git PR
+  annotations:
+    # Production: Triggered by GitHub releases, uses release tags
+    argocd-image-updater.argoproj.io/image-list: version-service=864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/version
+    argocd-image-updater.argoproj.io/version-service.update-strategy: semver
+    argocd-image-updater.argoproj.io/version-service.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
+    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
 
@@ -37,4 +43,3 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
