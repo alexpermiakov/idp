@@ -24,3 +24,8 @@ output "cluster_id" {
   description = "ID of the EKS cluster"
   value       = module.eks.cluster_id
 }
+
+output "oidc_provider_arn" {
+  description = "ARN of the OIDC provider for the EKS cluster"
+  value       = module.eks.oidc_provider_arn
+}

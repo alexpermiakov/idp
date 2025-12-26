@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/alexpermiakov/idp
-    targetRevision: main
+    targetRevision: ${BRANCH_NAME}
     path: "argocd/applications/dev"
     directory:
       recurse: true
@@ -18,4 +18,3 @@ spec:
     automated:
       prune: true
       selfHeal: true
-

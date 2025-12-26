@@ -43,9 +43,11 @@ service:
 
 ingress:
   enabled: false
-  className: nginx
+  className: alb
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
   hosts: []
   tls: []
 
@@ -92,4 +94,3 @@ highAvailability:
 
 nodeSelector: {}
 tolerations: []
-
