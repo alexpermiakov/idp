@@ -9,13 +9,13 @@ metadata:
     argocd-image-updater.argoproj.io/version-service.update-strategy: latest
     argocd-image-updater.argoproj.io/version-service.allow-tags: regexp:^sha-.*
     argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
-    argocd-image-updater.argoproj.io/git-branch: ${BRANCH_NAME}
+    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
 
   sources:
     - repoURL: https://github.com/alexpermiakov/idp
-      targetRevision: ${BRANCH_NAME}
+      targetRevision: main
       path: helm-charts/standard-service
       helm:
         releaseName: version-service
@@ -55,3 +55,4 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+

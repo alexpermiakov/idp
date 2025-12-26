@@ -28,6 +28,11 @@ resource "helm_release" "argocd" {
       # Enable admin user
       name  = "configs.params.server\\.insecure"
       value = "true"
+    },
+    {
+      # Git repository polling interval (default is 3m)
+      name  = "configs.params.timeout\\.reconciliation"
+      value = "60s"
     }
   ]
 
@@ -43,26 +48,6 @@ resource "helm_release" "argocd_image_updater" {
 
   set = [
     {
-      name  = "config.interval"
-      value = "60s"
-    },
-    {
-      name  = "config.registries[0].name"
-      value = "ECR"
-    },
-    {
-      name  = "config.registries[0].api_url"
-      value = "https://864992049050.dkr.ecr.us-east-1.amazonaws.com"
-    },
-    {
-      name  = "config.registries[0].prefix"
-      value = "864992049050.dkr.ecr.us-east-1.amazonaws.com"
-    },
-    {
-      name  = "config.registries[0].ping"
-      value = "false"
-    },
-    {
       name  = "config.argocd.grpcWeb"
       value = "true"
     },
@@ -73,14 +58,6 @@ resource "helm_release" "argocd_image_updater" {
     {
       name  = "config.argocd.plaintext"
       value = "true"
-    },
-    {
-      name  = "config.gitCommitUser"
-      value = "argocd-image-updater[bot]"
-    },
-    {
-      name  = "config.gitCommitMail"
-      value = "argocd-image-updater[bot]@users.noreply.github.com"
     }
   ]
 
