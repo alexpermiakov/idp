@@ -15,7 +15,7 @@ spec:
 
   sources:
     - repoURL: https://github.com/alexpermiakov/idp
-      targetRevision: main
+      targetRevision: HEAD
       path: helm-charts/standard-service
       helm:
         releaseName: time-service

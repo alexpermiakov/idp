@@ -30,8 +30,8 @@ resource "helm_release" "argocd" {
       value = "true"
     },
     {
-      # Git repository polling interval (default is 3m)
-      name  = "configs.params.timeout\\.reconciliation"
+      # Set the app sync interval to 60s instead of default 3m
+      name  = "configs.params.application\\.sync\\.interval"
       value = "60s"
     }
   ]
