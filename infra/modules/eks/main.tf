@@ -112,7 +112,7 @@ resource "kubernetes_cluster_role_binding_v1" "eks_admins" {
 
   role_ref {
     kind      = "ClusterRole"
-    name      = "cluster-admin" # Use built-in cluster-admin role for full access
+    name      = "cluster-admin"
     api_group = "rbac.authorization.k8s.io"
   }
 
