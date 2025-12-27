@@ -4,44 +4,6 @@
 
 This IDP uses a **distributed ArgoCD architecture** with one ArgoCD instance per cluster, deployed across three AWS accounts.
 
-## Infrastructure Layout
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         GitHub Repository                            │
-│                    github.com/alexpermiakov/idp                      │
-│                                                                       │
-│  - infra/                  (Terraform for all environments)          │
-│  - argocd/applications/    (ArgoCD manifests by environment)         │
-│  - helm-charts/            (Shared Helm charts)                      │
-│  - .github/workflows/      (Provision workflows for each env)        │
-└────────────────────┬────────────────────────────────────────────────┘
-                     │
-        ┌────────────┴────────────┬──────────────────┐
-        │                         │                  │
-┌───────▼──────────┐     ┌────────▼─────────┐  ┌────▼────────────────┐
-│  Dev Account     │     │ Staging Account  │  │  Prod Account       │
-│  AWS 935...      │     │  AWS ???         │  │  AWS ???            │
-│                  │     │                  │  │                     │
-│  ┌────────────┐  │     │  ┌────────────┐  │  │  ┌────────────┐    │
-│  │ EKS Cluster│  │     │  │ EKS Cluster│  │  │  │ EKS Cluster│    │
-│  │            │  │     │  │            │  │  │  │            │    │
-│  │ ┌────────┐ │  │     │  │ ┌────────┐ │  │  │  │ ┌────────┐ │    │
-│  │ │ArgoCD  │ │  │     │  │ │ArgoCD  │ │  │  │  │ │ArgoCD  │ │    │
-│  │ │        │ │  │     │  │ │        │ │  │  │  │ │        │ │    │
-│  │ │Watches:│ │  │     │  │ │Watches:│ │  │  │  │ │Watches:│ │    │
-│  │ │argocd/ │ │  │     │  │ │argocd/ │ │  │  │  │ │argocd/ │ │    │
-│  │ │apps/   │ │  │     │  │ │apps/   │ │  │  │  │ │apps/   │ │    │
-│  │ │dev/    │ │  │     │  │ │staging/│ │  │  │  │ │prod/   │ │    │
-│  │ └────────┘ │  │     │  │ └────────┘ │  │  │  │ └────────┘ │    │
-│  │            │  │     │  │            │  │  │  │            │    │
-│  │ Apps:      │  │     │  │ Apps:      │  │  │  │ Apps:      │    │
-│  │ - time-svc │  │     │  │ - time-svc │  │  │  │ - time-svc │    │
-│  │ - ver-svc  │  │     │  │ - ver-svc  │  │  │  │ - ver-svc  │    │
-│  └────────────┘  │     │  └────────────┘  │  │  └────────────┘    │
-└──────────────────┘     └──────────────────┘  └─────────────────────┘
-```
-
 ## AWS Account Structure
 
 This setup requires **5 AWS accounts** organized under AWS Organizations:
@@ -54,40 +16,23 @@ This setup requires **5 AWS accounts** organized under AWS Organizations:
 
 All accounts are managed under AWS Organizations for centralized billing and governance.
 
-## Deployment Strategy
-
-### Infrastructure Provisioning (Terraform)
-
-Each environment gets provisioned independently via GitHub Actions:
-
-- **`.github/workflows/provision-dev.yml`** → Provisions dev account (935743309409)
-- **`.github/workflows/provision-staging.yml`** → Provisions staging account (TBD)
-- **`.github/workflows/provision-prod.yml`** → Provisions prod account (TBD)
-
-Each workflow:
-
-1. Runs on merge to `main` (or manual trigger)
-2. Authenticates to the target AWS account via OIDC
-3. Runs `terraform apply` in `infra/entry/`
-4. Creates: VPC, EKS, ArgoCD, ECR Pod Identity
-
-### Application Deployment (ArgoCD + GitOps)
+## Application Deployment (ArgoCD + GitOps)
 
 Each ArgoCD instance is configured differently:
 
 #### Dev ArgoCD
 
 - Watches: `argocd/applications/dev/`
-- Git Branch: Dynamic (PR branches)
-- Deployment: App team CI opens PR with new image tags
+- Git Branch: PR branches (ephemeral dev cluster per PR)
+- Deployment: Automatic on PR creation → Destroyed on PR merge/close
 - Sync: Fully automated (prune + self-heal)
-- Purpose: Fast iteration and testing
+- Purpose: App teams can test changes immediately without platform team involvement
 
 #### Staging ArgoCD
 
 - Watches: `argocd/applications/staging/`
 - Git Branch: `main`
-- Deployment: Platform team promotes via PR
+- Deployment: Automatic on PR merge → Deploys to persistent staging cluster
 - Sync: Fully automated
 - Purpose: Pre-production validation
 
@@ -97,184 +42,51 @@ Each ArgoCD instance is configured differently:
 - Git Target: Semver tags (e.g., `v1.2.3`)
 - Deployment: Platform team promotes via PR (controlled release)
 - Sync: Fully automated
-- Purpose: Production workloads with immutable releases
-
-### What Each ArgoCD Watches
-
-All ArgoCD instances watch the **same Git repository**, but different paths:
-
-```yaml
-# Dev ArgoCD ApplicationSet
-spec:
-  source:
-    repoURL: https://github.com/alexpermiakov/idp
-    targetRevision: main
-    path: "argocd/applications/dev"  # ← Only dev apps
-
-# Staging ArgoCD ApplicationSet
-spec:
-  source:
-    repoURL: https://github.com/alexpermiakov/idp
-    targetRevision: main
-    path: "argocd/applications/staging"  # ← Only staging apps
-
-# Prod ArgoCD ApplicationSet
-spec:
-  source:
-    repoURL: https://github.com/alexpermiakov/idp
-    targetRevision: main
-    path: "argocd/applications/prod"  # ← Only prod apps
-```
 
 ## Deployment Flow (Pure GitOps)
 
 ### 1. App Team Releases New Version
 
 ```
-App Team Repository (e.g., localtime service):
+App Team Repository (e.g., my-service service):
 1. Developer tags release: git tag v1.2.3
 2. GitHub Actions workflow automatically:
    - Builds Docker image
-   - Pushes to ECR: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:v1.2.3
+   - Pushes to ECR: AWS_TOOLING_ACC_ID.dkr.ecr.us-west-2.amazonaws.com/idp/my-service:v1.2.3
    - Clones platform repo (github.com/alexpermiakov/idp)
-   - Updates argocd/applications/dev/time-service.yaml with new image tag
-   - Opens PR: "🚀 Deploy time-service v1.2.3 to dev"
+   - Updates argocd/applications/dev/my-service.yaml with new image tag
+   - Opens PR: "🚀 Deploy my-service v1.2.3 to dev"
 ```
 
-### 2. Platform Team Reviews & Deploys to Dev
+### 2. Automatic Dev Cluster Creation & Deployment
+
+```
+Automatic:
+1. PR is opened → New ephemeral dev k8s cluster is created for this PR
+2. Dev ArgoCD detects changes and syncs → Deploys to the PR's dev cluster
+3. App team can test changes immediately
+```
+
+### 3. Platform Team Merges & Promotes to Staging
 
 ```
 Platform Team:
-3. Reviews auto-generated PR
-4. Validates: image exists in ECR, semver is valid
-5. Merges PR → Commit to main branch
-6. Dev ArgoCD detects change → Syncs → Deploys to dev cluster
+1. Reviews PR and validates deployment in dev cluster
+2. Merges PR → Ephemeral dev cluster is destroyed
+3. Staging ArgoCD detects change → Syncs → Deploys to staging cluster
 ```
-
-### 3. Promotion to Staging
-
-````
-Platform Team:
-7. Validates dev deployment
-8. Opens PR updating argocd/applic
-
-**Do this once per AWS account (dev/staging/prod).** ArgoCD uses a GitHub App to authenticate and read repository manifests. This provides secure, auditable access without long-lived tokens.
-
-#### Create GitHub App
-
-1. Go to https://github.com/organizations/YOUR_ORG/settings/apps (or your personal account settings)
-2. Click "New GitHub App"
-3. Fill in:
-   - **Name**: `argocd-YOUR_CLUSTER` (must be unique)
-   - **Homepage URL**: `https://argoproj.github.io/argo-cd/`
-   - **Webhook**: Uncheck "Active"
-4. **Repository permissions**:
-   - Contents: `Read-only`
-   - Metadata: `Read-only` (automatically selected)
-5. **Where can this GitHub App be installed?**: Select "Only on this account"
-6. Click "Create GitHub App"
-
-#### Generate Private Key
-
-1. On the app page, scroll to "Private keys"
-2. Click "Generate a private key"
-3. Save the downloaded `.pem` file securely
-
-#### Install the App
-
-1. On the app page, click "Install App" in the left sidebar
-2. Select your account/organization
-3. Choose "Only select repositories"
-4. Select the `idp` repository
-5. Click "Install"
-
-#### Get IDs
-
-From the app settings page, note:
-
-- **App ID**: Visible at the top of the page
-- **Installation ID**: In the URL after installing: `https://github.com/settings/installations/12345678` → Installation ID is `12345678`
-
-#### Store Credentials in AWS SSM
-
-**Important**: Store credentials in **each AWS account where an EKS cluster runs** (dev, staging, prod). ArgoCD runs as a pod in the cluster and needs to access SSM parameters in the same account.
-
-You can use the **same GitHub App for all environments** (simpler) or create separate apps per environment (more isolation).
-
-```bash
-# Set AWS profile for the target account
-export AWS_PROFILE=935743309409_AdministratorAccess  # dev
-# export AWS_PROFILE=470879558261_AdministratorAccess  # staging
-# export AWS_PROFILE=316762121478_AdministratorAccess  # prod
-
-# Store App ID
-aws ssm put-parameter \
-  --name "/idp/github-app-id" \
-  --value "YOUR_APP_ID" \
-  --type "String" \
-  --region us-west-2 \
-  --overwrite
-
-# Store Installation ID
-aws ssm put-parameter \
-  --name "/idp/github-app-installation-id" \
-  --value "YOUR_INSTALLATION_ID" \
-  --type "String" \
-  --region us-west-2 \
-  --overwrite
-
-# Store Private Key (entire PEM file)
-aws ssm put-parameter \
-  --name "/idp/github-app-private-key" \
-  --value "$(cat /path/to/your-app.pem)" \
-  --type "SecureString" \
-  --region us-west-2 \
-  --overwrite
-````
-
-**Notes:**
-
-- No special roles or infrastructure needed - just AWS CLI access with SSM permissions
-- This is a one-time setup per AWS account
-- Terraform will read these parameters when deploying ArgoCD
 
 ---
 
-### 2. App Team Onboarding
+## Setup
+
+### 1. App Team Onboarding
 
 For app teams to deploy their services, see the complete guide:
 
-- **[App Team Onboarding Guide](docs/app-team-onboarding.md)** - Full setup instructions
 - **[CI Workflow Template](docs/app-team-ci-workflow.yaml)** - GitHub Actions workflow
 
 **Quick Summary:** App teams set up a GitHub Actions workflow that automatically opens PRs to this platform repo when they tag releases. Platform team reviews and merges PRs to trigger deployments.
-
----
-
-### 3sm put-parameter \
-
---name "/idp/github-app-installation-id" \
- --value "YOUR_INSTALLATION_ID" \
- --type "String" \
- --region us-west-2 \
- --overwrite
-
-# Store Private Key (entire PEM file)
-
-aws ssm put-parameter \
- --name "/idp/github-app-private-key" \
- --value "$(cat /path/to/your-app.pem)" \
- --type "SecureString" \
- --region us-west-2 \
- --overwrite
-
-````
-
-**Notes:**
-
-- No special roles or infrastructure needed - just AWS CLI access with SSM permissions
-- This is a one-time setup per AWS account
-- Terraform will read these parameters when deploying ArgoCD
 
 ---
 
@@ -305,7 +117,7 @@ aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
   --client-id-list sts.amazonaws.com \
   --tags Key=Name,Value=GitHubActionsOIDC
-````
+```
 
 #### Step 2: Create GitHubActionsRole
 
