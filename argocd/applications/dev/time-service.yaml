@@ -3,13 +3,6 @@ kind: Application
 metadata:
   name: time-service-dev
   namespace: argocd
-  annotations:
-    # Dev environment: Always use latest sha- tagged images
-    argocd-image-updater.argoproj.io/image-list: time-service=864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime
-    argocd-image-updater.argoproj.io/time-service.update-strategy: latest
-    argocd-image-updater.argoproj.io/time-service.allow-tags: regexp:^sha-.*
-    argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/github-app-credentials
-    argocd-image-updater.argoproj.io/git-branch: main
 spec:
   project: default
 
@@ -22,10 +15,10 @@ spec:
         values: |
           app:
             name: time-service
-            image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:sha-68a2828
+            image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:v1.0.0
             port: 1599
           resourceProfile: small
-          replicaCount: 2
+          replicaCount: 5
           ingress:
             enabled: true
             className: alb

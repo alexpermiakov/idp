@@ -84,11 +84,3 @@ module "ecr_pod_identity" {
   ecr_account_id = "864992049050"
   depends_on     = [module.eks]
 }
-
-module "aws_load_balancer_controller" {
-  source                  = "../modules/alb-controller"
-  cluster_name            = module.eks.cluster_name
-  cluster_oidc_issuer_url = module.eks.oidc_provider_arn
-  vpc_id                  = module.vpc.vpc_id
-  depends_on              = [module.eks]
-}
