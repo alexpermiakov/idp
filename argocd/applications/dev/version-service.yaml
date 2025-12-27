@@ -22,7 +22,7 @@ spec:
         values: |
           app:
             name: version-service
-            image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/version:sha-4508f32
+            image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/version:v1.0.0
             port: 8080
           resourceProfile: small
           replicaCount: 1
