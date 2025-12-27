@@ -71,30 +71,33 @@ Each workflow:
 3. Runs `terraform apply` in `infra/entry/`
 4. Creates: VPC, EKS, ArgoCD, ECR Pod Identity
 
-### Application Deployment (ArgoCD)
+### Application Deployment (ArgoCD + GitOps)
 
 Each ArgoCD instance is configured differently:
 
 #### Dev ArgoCD
 
 - Watches: `argocd/applications/dev/`
-- Auto-deploys: Latest `sha-*` tagged images
+- Git Branch: Dynamic (PR branches)
+- Deployment: App team CI opens PR with new image tags
 - Sync: Fully automated (prune + self-heal)
-- Purpose: Continuous deployment from `main`
+- Purpose: Fast iteration and testing
 
 #### Staging ArgoCD
 
 - Watches: `argocd/applications/staging/`
-- Auto-deploys: Semantic version tags (e.g., `v1.2.3`)
+- Git Branch: `main`
+- Deployment: Platform team promotes via PR
 - Sync: Fully automated
-- Purpose: Release candidate testing
+- Purpose: Pre-production validation
 
 #### Prod ArgoCD
 
 - Watches: `argocd/applications/prod/`
-- Deploys: Pinned stable versions
-- Sync: Manual approval required (or automated with extra checks)
-- Purpose: Production workloads
+- Git Target: Semver tags (e.g., `v1.2.3`)
+- Deployment: Platform team promotes via PR (controlled release)
+- Sync: Fully automated
+- Purpose: Production workloads with immutable releases
 
 ### What Each ArgoCD Watches
 
@@ -123,50 +126,50 @@ spec:
     path: "argocd/applications/prod"  # ← Only prod apps
 ```
 
-## Image Promotion Flow
+## Deployment Flow (Pure GitOps)
+
+### 1. App Team Releases New Version
 
 ```
-1. Commit to main
-   └─> CI builds & tags: sha-714f35e
-       └─> ArgoCD Image Updater (Dev) detects new sha-* tag
-           └─> Updates argocd/applications/dev/time-service.yaml
-               └─> Dev ArgoCD syncs → Deploys to dev cluster
-
-2. Git tag v1.2.3
-   └─> CI tags same image: v1.2.3
-       └─> ArgoCD Image Updater (Staging) detects new v* tag
-           └─> Updates argocd/applications/staging/time-service.yaml
-               └─> Staging ArgoCD syncs → Deploys to staging cluster
-
-3. Manual promotion to prod
-   └─> Engineer updates argocd/applications/prod/time-service.yaml
-       └─> Changes image to v1.2.3
-           └─> Creates PR & merges
-               └─> Prod ArgoCD syncs → Deploys to prod cluster
+App Team Repository (e.g., localtime service):
+1. Developer tags release: git tag v1.2.3
+2. GitHub Actions workflow automatically:
+   - Builds Docker image
+   - Pushes to ECR: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:v1.2.3
+   - Clones platform repo (github.com/alexpermiakov/idp)
+   - Updates argocd/applications/dev/time-service.yaml with new image tag
+   - Opens PR: "🚀 Deploy time-service v1.2.3 to dev"
 ```
 
----
+### 2. Platform Team Reviews & Deploys to Dev
 
-# Internal Developer Platform
+```
+Platform Team:
+3. Reviews auto-generated PR
+4. Validates: image exists in ECR, semver is valid
+5. Merges PR → Commit to main branch
+6. Dev ArgoCD detects change → Syncs → Deploys to dev cluster
+```
 
-Infrastructure as Code for provisioning EKS clusters with ArgoCD.
+### 3. Promotion to Staging
 
-## Prerequisites
+````
+Platform Team:
+7. Validates dev deployment
+8. Opens PR updating argocd/applic
 
-### 1. GitHub App Setup for ArgoCD Image Updater
-
-**Do this once per AWS account (dev/staging/prod) as soon as the account is created.** ArgoCD Image Updater uses a GitHub App to authenticate and write image updates back to Git. This provides secure, auditable access without long-lived tokens.
+**Do this once per AWS account (dev/staging/prod).** ArgoCD uses a GitHub App to authenticate and read repository manifests. This provides secure, auditable access without long-lived tokens.
 
 #### Create GitHub App
 
 1. Go to https://github.com/organizations/YOUR_ORG/settings/apps (or your personal account settings)
 2. Click "New GitHub App"
 3. Fill in:
-   - **Name**: `argocd-image-updater-YOUR_CLUSTER` (must be unique)
+   - **Name**: `argocd-YOUR_CLUSTER` (must be unique)
    - **Homepage URL**: `https://argoproj.github.io/argo-cd/`
    - **Webhook**: Uncheck "Active"
 4. **Repository permissions**:
-   - Contents: `Read and write`
+   - Contents: `Read-only`
    - Metadata: `Read-only` (automatically selected)
 5. **Where can this GitHub App be installed?**: Select "Only on this account"
 6. Click "Create GitHub App"
@@ -194,7 +197,7 @@ From the app settings page, note:
 
 #### Store Credentials in AWS SSM
 
-**Important**: Store credentials in **each AWS account where an EKS cluster runs** (dev, staging, prod). ArgoCD Image Updater runs as a pod in the cluster and needs to access SSM parameters in the same account.
+**Important**: Store credentials in **each AWS account where an EKS cluster runs** (dev, staging, prod). ArgoCD runs as a pod in the cluster and needs to access SSM parameters in the same account.
 
 You can use the **same GitHub App for all environments** (simpler) or create separate apps per environment (more isolation).
 
@@ -227,7 +230,45 @@ aws ssm put-parameter \
   --type "SecureString" \
   --region us-west-2 \
   --overwrite
-```
+````
+
+**Notes:**
+
+- No special roles or infrastructure needed - just AWS CLI access with SSM permissions
+- This is a one-time setup per AWS account
+- Terraform will read these parameters when deploying ArgoCD
+
+---
+
+### 2. App Team Onboarding
+
+For app teams to deploy their services, see the complete guide:
+
+- **[App Team Onboarding Guide](docs/app-team-onboarding.md)** - Full setup instructions
+- **[CI Workflow Template](docs/app-team-ci-workflow.yaml)** - GitHub Actions workflow
+
+**Quick Summary:** App teams set up a GitHub Actions workflow that automatically opens PRs to this platform repo when they tag releases. Platform team reviews and merges PRs to trigger deployments.
+
+---
+
+### 3sm put-parameter \
+
+--name "/idp/github-app-installation-id" \
+ --value "YOUR_INSTALLATION_ID" \
+ --type "String" \
+ --region us-west-2 \
+ --overwrite
+
+# Store Private Key (entire PEM file)
+
+aws ssm put-parameter \
+ --name "/idp/github-app-private-key" \
+ --value "$(cat /path/to/your-app.pem)" \
+ --type "SecureString" \
+ --region us-west-2 \
+ --overwrite
+
+````
 
 **Notes:**
 
@@ -264,7 +305,7 @@ aws iam create-open-id-connect-provider \
   --url https://token.actions.githubusercontent.com \
   --client-id-list sts.amazonaws.com \
   --tags Key=Name,Value=GitHubActionsOIDC
-```
+````
 
 #### Step 2: Create GitHubActionsRole
 

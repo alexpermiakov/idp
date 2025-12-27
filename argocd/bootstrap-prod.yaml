@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/alexpermiakov/idp
-    targetRevision: main
+    targetRevision: v*.*.* # Track semver tags from GitHub Releases
     path: "argocd/applications/prod"
     directory:
       recurse: true
@@ -18,3 +18,4 @@ spec:
     automated:
       prune: true
       selfHeal: true
+

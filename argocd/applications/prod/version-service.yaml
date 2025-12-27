@@ -3,14 +3,12 @@ kind: Application
 metadata:
   name: version-service-prod
   namespace: argocd
-  annotations:
-    # Production: Manual updates via PR only (image updater disabled)
 spec:
   project: default
 
   sources:
     - repoURL: https://github.com/alexpermiakov/idp
-      targetRevision: HEAD
+      targetRevision: v*.*.* # Track semver tags from GitHub Releases
       path: helm-charts/standard-service
       helm:
         releaseName: version-service

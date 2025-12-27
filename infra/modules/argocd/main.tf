@@ -39,34 +39,6 @@ resource "helm_release" "argocd" {
   depends_on = [kubernetes_namespace_v1.argocd]
 }
 
-resource "helm_release" "argocd_image_updater" {
-  name       = "argocd-image-updater"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argocd-image-updater"
-  version    = "1.0.2"
-  namespace  = kubernetes_namespace_v1.argocd.metadata[0].name
-
-  set = [
-    {
-      name  = "config.argocd.grpcWeb"
-      value = "true"
-    },
-    {
-      name  = "config.argocd.insecure"
-      value = "true"
-    },
-    {
-      name  = "config.argocd.plaintext"
-      value = "true"
-    }
-  ]
-
-  depends_on = [
-    helm_release.argocd,
-    kubernetes_secret_v1.github_app_credentials
-  ]
-}
-
 resource "kubernetes_secret_v1" "github_app_credentials" {
   count = var.github_app_id != "" ? 1 : 0
 
@@ -180,7 +152,6 @@ resource "null_resource" "argocd_cleanup" {
       kubectl delete crd applications.argoproj.io 2>/dev/null || true
       kubectl delete crd applicationsets.argoproj.io 2>/dev/null || true
       kubectl delete crd appprojects.argoproj.io 2>/dev/null || true
-      kubectl delete crd imageupdaters.argocd-image-updater.argoproj.io 2>/dev/null || true
       
       echo "ArgoCD cleanup completed"
     EOT
@@ -192,7 +163,6 @@ resource "null_resource" "argocd_cleanup" {
 
   depends_on = [
     null_resource.app_of_apps,
-    helm_release.argocd_image_updater,
     helm_release.argocd
   ]
 }
