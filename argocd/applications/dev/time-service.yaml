@@ -18,7 +18,7 @@ spec:
             image: 864992049050.dkr.ecr.us-west-2.amazonaws.com/idp/localtime:v1.0.0
             port: 1599
           resourceProfile: small
-          replicaCount: 5
+          replicaCount: 2
           ingress:
             enabled: true
             className: alb
